@@ -10,69 +10,53 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 test-suite spec
-  ghc-options:       -fllvm
-  type: exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is: Spec.hs
-  build-depends:     base,
-                     bytestring,
-                     manicure,
-                     hspec,
-                     containers,
-                     attoparsec
+  ghc-options:       -fllvm -ddump-deriv
+  hs-source-dirs:    spec
+  main-is:           Spec.hs
+  type:              exitcode-stdio-1.0
+  build-depends:     base
+                   , hspec
+                   , bytestring
+                   , manicure
+                   , hspec
+                   , containers
+                   , attoparsec
   default-language:  Haskell2010
-library
-  ghc-options:       -fllvm
-  exposed-modules:   Manicure.Request,
-                     Manicure.Response,
-                     Manicure.Route,
-                     Manicure.Http,
-                     Manicure.Html,
-                     Manicure.Database,
-                     Manicure.Session,
-                     Manicure.ByteString,
-                     Manicure.Auth,
-                     Manicure.Json,
-                     Manicure.Handler,
-                     Manicure.Parser,
-                     Manicure.Markdown,
-                     Models.Article,
-                     Models.User,
-                     Handler.Main,
-                     Handler.Auth,
-                     Handler.Article,
-                     Handler.Exception
-  build-depends:     base,
-                     network,
-                     bytestring,
-                     utf8-string,
-                     http-types,
-                     unix,
-                     template-haskell,
-                     monad-control,
-                     attoparsec,
-                     mtl,
-                     text,
-                     transformers,
-                     containers,
-                     time,
-                     mongoDB,
-                     bson,
-                     hedis,
-                     cryptohash,
-                     wreq,
-                     lens,
-                     old-locale
+library 
+  ghc-options:       -fllvm -auto-all
+  exposed-modules:   Core.Request
+                   , Core.Response
+                   , Core.Route
+                   , Core.Http
+                   , Core.Html
+                   , Core.Database
+                   , Core.Session
+                   , Core.ByteString
+                   , Core.Json
+                   , Core.Parser
+                   , Core.Markdown
+                   , Core.Model
+                   , Core.Launcher
+  build-depends:     base
+                   , network
+                   , directory
+                   , bytestring
+                   , utf8-string
+                   , http-types
+                   , unix
+                   , template-haskell
+                   , monad-control
+                   , attoparsec
+                   , mtl
+                   , text
+                   , transformers
+                   , containers
+                   , time
+                   , mongoDB
+                   , bson
+                   , hedis
+                   , cryptohash
+                   , wreq
+                   , lens
   hs-source-dirs:    src
   default-language:  Haskell2010
-executable manicure
-  ghc-options:       -fllvm
-  main-is:           main.hs
-  build-depends:     manicure,
-                     base,
-                     network,
-                     bytestring,
-                     cryptohash
-  hs-source-dirs:    app
-  default-language:  Haskell2010
-
