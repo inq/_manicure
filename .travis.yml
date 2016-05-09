@@ -1,0 +1,37 @@
+language: c
+
+sudo: false
+cache:
+  directories:
+  - $HOME/.stack
+
+matrix:
+  include:
+  - env: CABAL=1.22 GHC=7.10.3 LLVM=3.5
+    addons:
+      apt:
+        sources:
+        - hvr-ghc
+        - llvm-toolchain-precise-3.5
+        - ubuntu-toolchain-r-test
+        packages:
+        - ghc-7.10.3
+        - llvm-3.5-dev
+        - gcc-4.8
+        - g++-4.8
+
+before_install:
+  - mkdir -p $HOME/.local/bin
+  - export PATH=$HOME/.local/bin:PATH=/opt/ghc/$GHC/bin:/opt/cabal/$CABAL/bin:/usr/lib/llvm-$LLVM/bin:$PATH
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - stack setup
+install:
+  - echo "$(stack exec ghc -- --version) [$(stack exec ghc -- --print-project-git-commit-id 2> /dev/null || echo '?')]"
+  - stack --version
+  - opt --version; true
+  - llc --version; true
+  - stack -j 2 build --only-dependencies --no-terminal
+
+script:
+  - stack -j 2 build --no-terminal
+  - stack -j 2 test
