@@ -17,18 +17,29 @@ import qualified Core.Response                  as Res
 import qualified Data.Text                      as T
 import qualified Control.Monad                  as M
 
-daemonize :: [Char] -> IO () -> IO ()
+daemonize :: [Char] -> [Char] -> [Char] -> IO () -> IO ()
 -- ^ Daemonize the given function
-daemonize pidFile process = do
+daemonize pidFile stdOut stdErr process = do
     exists <- D.doesFileExist pidFile
     M.when exists $ removeAndKill pidFile
     ignore $ P.forkProcess $ do
         P.createSession
         ignore $ P.forkProcess $ do
             writePid pidFile
+            remapFds
             process
   where
-    ignore act = act >> return ()
+    ignore f = f >> return ()
+    remapFds = do
+        devNull <- PIO.openFd "/dev/null" PIO.ReadOnly Nothing PIO.defaultFileFlags
+        _ <- PIO.dupTo devNull PIO.stdInput
+        PIO.closeFd devNull
+        fd <- PIO.openFd stdOut PIO.ReadWrite (Just PF.stdFileMode) PIO.defaultFileFlags
+        PIO.dupTo fd PIO.stdOutput
+        PIO.closeFd fd
+        fd <- PIO.openFd stdErr PIO.ReadWrite (Just PF.stdFileMode) PIO.defaultFileFlags
+        PIO.dupTo fd PIO.stdError
+        PIO.closeFd fd
     writePid pidFile = do
         fd <- PIO.createFile pidFile PF.stdFileMode
         pid <- P.getProcessID
