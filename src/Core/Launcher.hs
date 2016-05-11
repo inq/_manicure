@@ -3,6 +3,7 @@ module Core.Launcher where
 import qualified Network                        as N
 import qualified Network.Socket                 as NS
 import qualified Network.Socket.ByteString      as NSB 
+import qualified Data.ByteString.Char8          as BS
 import qualified Core.Database                  as DB
 import qualified Control.Concurrent             as CC
 import qualified System.Posix.Process           as P
@@ -51,7 +52,7 @@ daemonize pidFile stdOut stdErr process = do
         putStrLn ("pid file exists: " ++ pid)
         PS.signalProcess PS.sigQUIT $ read pid
 
-run :: Route.RouteTree -> Res.Response -> T.Text -> [Char] -> IO ()
+run :: Route.RouteTree -> BS.ByteString -> T.Text -> [Char] -> IO ()
 -- ^ Run the given RouteTree
 run routeTree response404 databaseName socketFile = N.withSocketsDo $ do
     removeExistingSocket socketFile
@@ -66,14 +67,14 @@ run routeTree response404 databaseName socketFile = N.withSocketsDo $ do
       exists <- D.doesFileExist socketFile
       M.when exists $ D.removeFile socketFile
 
-acceptSocket :: Route.RouteTree -> Res.Response -> NS.Socket -> DB.Connection -> IO ()
+acceptSocket :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO ()
 -- ^ Accept a new socket with a new process
 acceptSocket routeTree response404 socketFd db = do
     (fd, _) <- NS.accept socketFd
     CC.forkIO $ acceptBody routeTree response404 fd db
     acceptSocket routeTree response404 socketFd db
 
-acceptBody :: Route.RouteTree -> Res.Response -> NS.Socket -> DB.Connection -> IO () 
+acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
     req <- NSB.recv fd 4096
@@ -84,7 +85,7 @@ acceptBody routeTree response404 fd db = do
                     Just handler ->
                         handler db request
                     Nothing ->
-                        return response404
+                        return $ Res.error 404 response404
     NSB.sendAll fd $ Res.render response
     NS.sClose fd
 

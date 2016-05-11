@@ -35,6 +35,14 @@ render (Response version 200 cookies content) =
       ])
   where
     cookieToString cookie = BS.concat ["Set-Cookie: ", cookie, "; path=/\r\n"]
+render (Response version 404 _ content) =
+    BS.concat (
+      ["HTTP/1.0 404 Not Found\r\n"] ++ 
+      [
+        "Content-Length: ", BS.pack $ show $ BS.length content,
+        "\r\n\r\n", 
+        content
+      ])
 render (Response version 303 cookies url) =
     BS.concat (
       ["HTTP/1.0 303 See Other\r\n",
@@ -49,6 +57,10 @@ defaultVersion = Http.Version 1 1
 success :: BS.ByteString -> [BS.ByteString] -> Response
 -- ^ Generate a Response data which represents 200 OK
 success bs cookies = Response defaultVersion 200 cookies bs
+
+error :: Int -> BS.ByteString -> Response
+-- ^ Error page
+error code = Response defaultVersion code []
 
 redirect :: BS.ByteString -> [BS.ByteString] -> Response
 -- ^ Redirect to the specific URL
