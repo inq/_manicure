@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Core.Response where
 
-import qualified Language.Haskell.TH.Syntax     as TS
 import qualified Data.ByteString.Char8          as BS
 import qualified Core.Http                      as Http
 import qualified Core.Request                   as Req

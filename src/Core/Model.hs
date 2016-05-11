@@ -3,20 +3,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE KindSignatures #-}
 module Core.Model where
 
 import qualified Data.ByteString.Char8            as BS
 import qualified GHC.Generics                     as GN
 import qualified Data.Char                        as C
 import qualified Data.Typeable                    as T
-import qualified Data.Proxy                       as P
 import qualified Core.Json                        as Json
 import qualified Data.Map.Strict                  as M
-import qualified Core.Database                    as DB
 import qualified Database.MongoDB                 as Mongo
 import qualified Data.Text                        as TXT
 import GHC.Generics ((:*:)(..))
@@ -82,7 +78,7 @@ instance (GModel f) => GModel (GN.M1 GN.D c f) where
 class CollectionName f where
     collectionName :: f p -> String
 instance (GN.Datatype c) => CollectionName (GN.D1 c f) where 
-    collectionName a = GN.datatypeName a
+    collectionName = GN.datatypeName
 
 class 
   ( GN.Generic a

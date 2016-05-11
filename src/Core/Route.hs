@@ -49,12 +49,12 @@ makeNode (head : tail) method action =
 makeNode [] method action =
     Node M.empty $ M.singleton method action
 
-match :: BS.ByteString -> Req.Method -> RouteTree -> Res.Action
+match :: BS.ByteString -> Req.Method -> RouteTree -> Maybe Res.Action
 -- ^ Find a corresponding route from the given request URI
 match uri method tree =
     case M.lookup method map of
-        Just res -> res $ reverse args
-        Nothing  -> error "404"
+        Just res -> Just $ res $ reverse args
+        Nothing  -> Nothing
   where
     (Node _ map, args) = findNode uriTokens tree []
     uriTokens = filter (not . BS.null) $ BS.split '/' uri

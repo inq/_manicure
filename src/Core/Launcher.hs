@@ -25,7 +25,7 @@ daemonize pidFile stdOut stdErr process = do
     ignore $ P.forkProcess $ do
         P.createSession
         ignore $ P.forkProcess $ do
-            writePid pidFile
+            _ <- writePid pidFile
             remapFds
             process
   where
@@ -35,15 +35,15 @@ daemonize pidFile stdOut stdErr process = do
         _ <- PIO.dupTo devNull PIO.stdInput
         PIO.closeFd devNull
         fd <- PIO.openFd stdOut PIO.ReadWrite (Just PF.stdFileMode) PIO.defaultFileFlags
-        PIO.dupTo fd PIO.stdOutput
+        _ <- PIO.dupTo fd PIO.stdOutput
         PIO.closeFd fd
         fd <- PIO.openFd stdErr PIO.ReadWrite (Just PF.stdFileMode) PIO.defaultFileFlags
-        PIO.dupTo fd PIO.stdError
+        _ <- PIO.dupTo fd PIO.stdError
         PIO.closeFd fd
     writePid pidFile = do
         fd <- PIO.createFile pidFile PF.stdFileMode
         pid <- P.getProcessID
-        putStrLn $ show pid
+        print pid
         PIO.fdWrite fd (show pid)
     removeAndKill pidFile = do
         pid <- readFile pidFile
@@ -51,38 +51,40 @@ daemonize pidFile stdOut stdErr process = do
         putStrLn ("pid file exists: " ++ pid)
         PS.signalProcess PS.sigQUIT $ read pid
 
-run :: Route.RouteTree -> T.Text -> [Char] -> IO ()
+run :: Route.RouteTree -> Res.Response -> T.Text -> [Char] -> IO ()
 -- ^ Run the given RouteTree
-run routeTree databaseName socketFile = N.withSocketsDo $ do
+run routeTree response404 databaseName socketFile = N.withSocketsDo $ do
     removeExistingSocket socketFile
     db <- DB.connect databaseName
     socketFd <- NS.socket NS.AF_UNIX NS.Stream 0
     NS.bind socketFd $ NS.SockAddrUnix socketFile
     NS.listen socketFd 10
     PF.setFileMode socketFile PF.stdFileMode
-    acceptSocket routeTree socketFd db
+    acceptSocket routeTree response404 socketFd db
   where
     removeExistingSocket socketFile = do
       exists <- D.doesFileExist socketFile
       M.when exists $ D.removeFile socketFile
 
-acceptSocket :: Route.RouteTree -> NS.Socket -> DB.Connection -> IO ()
+acceptSocket :: Route.RouteTree -> Res.Response -> NS.Socket -> DB.Connection -> IO ()
 -- ^ Accept a new socket with a new process
-acceptSocket routeTree socketFd db = do
+acceptSocket routeTree response404 socketFd db = do
     (fd, _) <- NS.accept socketFd
-    CC.forkIO $ acceptBody routeTree fd db
-    acceptSocket routeTree socketFd db
+    CC.forkIO $ acceptBody routeTree response404 fd db
+    acceptSocket routeTree response404 socketFd db
 
-acceptBody :: Route.RouteTree -> NS.Socket -> DB.Connection -> IO () 
+acceptBody :: Route.RouteTree -> Res.Response -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
-acceptBody routeTree fd db = do
+acceptBody routeTree response404 fd db = do
     req <- NSB.recv fd 4096
     let request = Req.parse req fd
     let uri = Req.uri request
     let method = Req.method request
-    let handler = Route.match uri method routeTree
-    putStrLn $ show request    
-    response <- (Route.match uri method routeTree) db request
+    response <- case Route.match uri method routeTree of
+                    Just handler ->
+                        handler db request
+                    Nothing ->
+                        return response404
     NSB.sendAll fd $ Res.render response
     NS.sClose fd
 
