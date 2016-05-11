@@ -9,13 +9,10 @@ module Core.Route where
 import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Language.Haskell.TH.Syntax       as TS
-import qualified Data.String                      as S
 import qualified Core.Request                     as Req
 import qualified Core.Response                    as Res
 import qualified Data.Map.Strict                  as M
 import qualified Core.Parser                      as P
-import Control.Applicative ((*>), (<*))
-import Data.Map.Strict ((!))
 
 data Routes = Routes [Route]
 data Route = Route String Req.Method String
@@ -35,7 +32,7 @@ instance TS.Lift Route where
         split c (head : tail) r
             | head == c    = r : split c tail ""
             | otherwise    = split c tail (r ++ [head])
-        uriTokens = filter (not . (== "")) $ split '/' uri ""
+        uriTokens = filter (/= "") $ split '/' uri ""
 instance TS.Lift Routes where
     lift (Routes a) = 
         [| foldl1 mergeNode a |]
@@ -61,13 +58,13 @@ match uri method tree =
   where
     (Node _ map, args) = findNode uriTokens tree []
     uriTokens = filter (not . BS.null) $ BS.split '/' uri
-    findNode (head : tail) (Node children _) args = 
+    findNode (head : tail) (Node children _) params = 
         case M.lookup head children of
             Just a  -> findNode tail a args
             Nothing -> case M.lookup "#String" children of
                 Just a -> findNode tail a (head : args)
                 Nothing -> (Node M.empty M.empty, [])
-    findNode [] node args = (node, args)
+    findNode [] node params = (node, params)
     
 parseFile :: FilePath -> TS.Q TS.Exp
 -- ^ Parse the route definition file
@@ -85,25 +82,25 @@ parse = TQ.QuasiQuoter
     , TQ.quoteDec = undefined
     }
   where
-    quoteExp str = do
+    quoteExp str = 
         case P.parseOnly routesNode (BS.pack str) of
-            Left err -> undefined
+            Left _ -> undefined
             Right tag -> [| tag |]
 
 routeNode :: P.Parser Route
 -- ^ The subparser
 routeNode = do
-    P.many $ P.char '\n'
+    _ <- P.many $ P.char '\n'
     uri <- P.noneOf1 " "
-    P.many1 $ P.char ' '
+    _ <- P.many1 $ P.char ' '
     method <- P.noneOf1 " "
-    P.many $ P.char ' '
+    _ <- P.many $ P.char ' '
     action <- P.noneOf1 "\n"
-    P.many $ P.char '\n'
+    _ <- P.many $ P.char '\n'
     return $ Route (BS.unpack uri) (Req.strToMethod $ BS.unpack method) $ BS.unpack action
 
 routesNode :: P.Parser Routes
 -- ^ The main parser
 routesNode = do
-    lines <- P.many routeNode
-    return $ Routes lines
+    routes <- P.many routeNode
+    return $ Routes routes
