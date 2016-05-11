@@ -13,6 +13,7 @@ import qualified Data.Char                        as C
 import qualified Data.Typeable                    as T
 import qualified Core.Json                        as Json
 import qualified Data.Map.Strict                  as M
+import qualified Core.Database                    as DB
 import qualified Database.MongoDB                 as Mongo
 import qualified Data.Text                        as TXT
 import GHC.Generics ((:*:)(..))
