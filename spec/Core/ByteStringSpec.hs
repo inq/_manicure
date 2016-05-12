@@ -13,6 +13,9 @@ spec = do
             it "parses simple string" $ do
                 splitAndDecode '&' " hello = hihi" `shouldBe`
                     M.fromList [("hello", "hihi")]
+            it "parses url-encoded string" $ do
+                splitAndDecode '&' " a%20a=  %30hi" `shouldBe`
+                    M.fromList [("a a", "0hi")]
             it "parses three arguments" $ do
                 splitAndDecode ';' " hello=hihi;a     =b; c = e" `shouldBe`
                     M.fromList [("hello", "hihi"), ("a", "b"), ("c", "e")]

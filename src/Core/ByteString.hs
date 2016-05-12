@@ -22,9 +22,10 @@ parse splitter = P.sepBy parsePair (P.char splitter)
   where
     spaces = P.skipWhile P.isHorizontalSpace
     parsePair = do
-        key <- spaces *> P.noneOf1 " =" <* spaces <* P.char '='
-        value <- spaces *> P.noneOf1 (splitter : " ") <* spaces 
+        key <- decode <$> (spaces *> P.noneOf1 " =" <* spaces <* P.char '=')
+        value <- decode <$> (spaces *> P.noneOf1 (splitter : " ") <* spaces)
         return (key, value)
+    decode = URI.urlDecode True
 
 splitAndDecode :: Char -> BS.ByteString -> QueryString
 -- ^ Split the given string and construct the Map
