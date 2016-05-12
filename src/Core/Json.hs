@@ -14,7 +14,6 @@ import qualified Core.Parser                      as P
 import Database.MongoDB (ObjectId)
 import Data.Char (chr)
 import Control.Applicative ((*>), (<*), (<$>), (<*>), (<|>))
-import Control.Monad
 
 data Json = JSString BS.ByteString
     | JSInt Int
@@ -46,13 +45,13 @@ parse :: BS.ByteString -> Json
 -- ^ Parse the given bytestring
 parse str = case P.parseOnly parseJson str of
     Right val -> val
-    Left err -> undefined
+    Left _ -> undefined
 
 parseJson :: P.Parser Json
 -- ^ The actual parser
 parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> parseInt
   where
-    parseString = liftM (JSString . UTF8.fromString) $ op '"' *> P.manyTill anyChar (P.char '"')
+    parseString = (JSString . UTF8.fromString) <$> (op '"' *> P.manyTill anyChar (P.char '"'))
       where
         escapeMap = M.fromList [
             ('"',  '"'),
@@ -69,8 +68,7 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
                        (w >= 'a' && w <= 'f')
         anyChar = escaped <|> P.anyChar
         escaped = do
-            P.char '\\'
-            c <- P.anyChar
+            c <- P.char '\\'*> P.anyChar
             case M.lookup c escapeMap of
                 Just ch -> return ch
                 Nothing -> if c == 'u'
@@ -82,18 +80,18 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
                     else fail "broken escape character"
         
     spaces = P.skipWhile P.isHorizontalSpace
-    parseArray = liftM JSArray $ op '[' *> P.sepBy (spaces *> parseJson <* spaces) (P.char ',') <* cl ']'
-    parseObject = liftM (JSObject . M.fromList) $ op '{' *> P.sepBy pair (P.char ',') <* cl '}'
+    parseArray = JSArray <$> (op '[' *> P.sepBy (spaces *> parseJson <* spaces) (P.char ',') <* cl ']')
+    parseObject = (JSObject . M.fromList) <$> (op '{' *> P.sepBy pair (P.char ',') <* cl '}')
       where
         pair = do
             key <- spaces *> parseString <* spaces <* P.char ':'
             value <- spaces *> parseJson <* spaces 
             return (rawString key, value)
         rawString (JSString x) = x
-    parseBoolean = liftM JSBoolean (parseTrue <|> parseFalse)
+    parseBoolean = JSBoolean <$> (parseTrue <|> parseFalse)
       where
         parseTrue = do P.try (spaces *> P.string "true" *> spaces); return True
         parseFalse = do P.try (spaces *> P.string "false" *> spaces); return False
-    parseInt = liftM (JSInt . read) $ P.try (P.many1 P.digit)
+    parseInt = (JSInt . read) <$> P.try (P.many1 P.digit)
     op c = P.try (spaces *> P.char c)
     cl c = P.char c <* spaces
