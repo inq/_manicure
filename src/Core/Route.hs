@@ -26,12 +26,12 @@ instance TS.Lift Route where
       where
         split _ [] "" = []
         split _ [] r = [r]
-        split c (head : tail) ""
-            | head == c    = split c tail ""
-            | otherwise    = split c tail [head]
-        split c (head : tail) r
-            | head == c    = r : split c tail ""
-            | otherwise    = split c tail (r ++ [head])
+        split c (char : chars) ""
+            | char == c    = split c chars ""
+            | otherwise    = split c chars [char]
+        split c (char : chars) r
+            | char == c    = r : split c chars ""
+            | otherwise    = split c chars (r ++ [char])
         uriTokens = filter (/= "") $ split '/' uri ""
 instance TS.Lift Routes where
     lift (Routes a) = 
@@ -44,8 +44,8 @@ mergeNode (Node a ha) (Node b hb) =
 
 makeNode :: [BS.ByteString] -> Req.Method -> Res.Handler -> RouteTree
 -- ^ Parsing the given ByteStrings, make a route chain
-makeNode (head : tail) method action = 
-    Node (M.singleton head $ makeNode tail method action) M.empty
+makeNode (str : strs) method action = 
+    Node (M.singleton str $ makeNode strs method action) M.empty
 makeNode [] method action =
     Node M.empty $ M.singleton method action
 
