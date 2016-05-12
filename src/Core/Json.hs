@@ -8,10 +8,9 @@ module Core.Json where
 
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.UTF8             as UTF8
-import qualified Data.Attoparsec.ByteString       as AB
-import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.Map.Strict                  as M
 import qualified Data.Time.Clock                  as TC
+import qualified Core.Parser                      as P
 import Database.MongoDB (ObjectId)
 import Data.Char (chr)
 import Control.Applicative ((*>), (<*), (<$>), (<*>), (<|>))
@@ -45,15 +44,15 @@ instance ToJson t => ToJson (Maybe t) where
 
 parse :: BS.ByteString -> Json
 -- ^ Parse the given bytestring
-parse str = case AC.parseOnly parseJson str of
+parse str = case P.parseOnly parseJson str of
     Right val -> val
     Left err -> undefined
 
-parseJson :: AB.Parser Json
+parseJson :: P.Parser Json
 -- ^ The actual parser
 parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> parseInt
   where
-    parseString = liftM (JSString . UTF8.fromString) $ op '"' *> AC.manyTill anyChar (AC.char8 '"')
+    parseString = liftM (JSString . UTF8.fromString) $ op '"' *> P.manyTill anyChar (P.char '"')
       where
         escapeMap = M.fromList [
             ('"',  '"'),
@@ -68,33 +67,33 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
         isHexDigit w = (w >= '0' && w <= '9') ||
                        (w >= 'A' && w <= 'F') ||
                        (w >= 'a' && w <= 'f')
-        anyChar = escaped <|> AC.anyChar
+        anyChar = escaped <|> P.anyChar
         escaped = do
-            AC.char8 '\\'
-            c <- AC.anyChar
+            P.char '\\'
+            c <- P.anyChar
             case M.lookup c escapeMap of
                 Just ch -> return ch
                 Nothing -> if c == 'u'
                     then do 
-                        code <- AC.count 4 (AC.satisfy isHexDigit)
+                        code <- P.count 4 (P.satisfy isHexDigit)
                         if null code
                              then fail "broken unicode"
                              else return $ chr $ read $ "0x" ++ code
                     else fail "broken escape character"
         
-    spaces = AB.skipWhile AC.isHorizontalSpace
-    parseArray = liftM JSArray $ op '[' *> AC.sepBy (spaces *> parseJson <* spaces) (AC.char8 ',') <* cl ']'
-    parseObject = liftM (JSObject . M.fromList) $ op '{' *> AC.sepBy pair (AC.char8 ',') <* cl '}'
+    spaces = P.skipWhile P.isHorizontalSpace
+    parseArray = liftM JSArray $ op '[' *> P.sepBy (spaces *> parseJson <* spaces) (P.char ',') <* cl ']'
+    parseObject = liftM (JSObject . M.fromList) $ op '{' *> P.sepBy pair (P.char ',') <* cl '}'
       where
         pair = do
-            key <- spaces *> parseString <* spaces <* AC.char8 ':'
+            key <- spaces *> parseString <* spaces <* P.char ':'
             value <- spaces *> parseJson <* spaces 
             return (rawString key, value)
         rawString (JSString x) = x
     parseBoolean = liftM JSBoolean (parseTrue <|> parseFalse)
       where
-        parseTrue = do AC.try (spaces *> AC.string "true" *> spaces); return True
-        parseFalse = do AC.try (spaces *> AC.string "false" *> spaces); return False
-    parseInt = liftM (JSInt . read) $ AC.try (AC.many1 AC.digit)
-    op c = AC.try (spaces *> AC.char8 c)
-    cl c = AC.char c <* spaces
+        parseTrue = do P.try (spaces *> P.string "true" *> spaces); return True
+        parseFalse = do P.try (spaces *> P.string "false" *> spaces); return False
+    parseInt = liftM (JSInt . read) $ P.try (P.many1 P.digit)
+    op c = P.try (spaces *> P.char c)
+    cl c = P.char c <* spaces

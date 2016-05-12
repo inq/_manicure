@@ -17,9 +17,24 @@ token c = spaces *> char c <* spaces
 isHorizontalSpace :: W.Word8 -> Bool
 isHorizontalSpace = AC.isHorizontalSpace
 
+count :: Monad m => Int -> m a -> m [a]
+count = AC.count
+
+digit :: Parser Char
+digit = AC.digit
+
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy = AC.satisfy
+
 isToken :: W.Word8 -> Bool
 isToken w = w <= 127
      && AB.notInClass "\0-\31()<>@,;:\\\"/[]?={} \t" w
+
+anyChar :: Parser Char
+anyChar = AC.anyChar
+
+manyTill :: Alternative f => f a -> f b -> f [a]
+manyTill = AC.manyTill
 
 takeTill :: (W.Word8 -> Bool) -> Parser BS.ByteString
 takeTill = AB.takeTill
