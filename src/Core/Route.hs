@@ -60,9 +60,9 @@ match uri method tree =
     uriTokens = filter (not . BS.null) $ BS.split '/' uri
     findNode (head : tail) (Node children _) params = 
         case M.lookup head children of
-            Just a  -> findNode tail a args
+            Just a  -> findNode tail a params
             Nothing -> case M.lookup "#String" children of
-                Just a -> findNode tail a (head : args)
+                Just a -> findNode tail a (head : params)
                 Nothing -> (Node M.empty M.empty, [])
     findNode [] node params = (node, params)
     
