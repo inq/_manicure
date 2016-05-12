@@ -21,6 +21,11 @@ test-suite spec
                    , hspec
                    , containers
                    , attoparsec
+  other-modules:     Core.ByteStringSpec
+                   , Core.JsonSpec
+                   , Core.MarkdownSpec
+                   , Core.ModelSpec
+                   , SpecHelper
   default-language:  Haskell2010
 library 
   ghc-options:       -fllvm -auto-all
