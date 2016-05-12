@@ -17,7 +17,7 @@ import Data.Char (chr)
 import Control.Applicative ((*>), (<*), (<$>), (<*>), (<|>))
 import Control.Monad
 
-data Json = JSString  BS.ByteString
+data Json = JSString BS.ByteString
     | JSInt Int
     | JSObject (M.Map BS.ByteString Json)
     | JSArray [Json]
