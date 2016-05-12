@@ -1,6 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE EmptyCase         #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -13,7 +11,7 @@ import qualified Data.Time.Clock                  as TC
 import qualified Core.Parser                      as P
 import Database.MongoDB (ObjectId)
 import Data.Char (chr)
-import Control.Applicative ((*>), (<*), (<$>), (<*>), (<|>))
+import Control.Applicative ((<|>))
 
 data Json = JSString BS.ByteString
     | JSInt Int
@@ -88,6 +86,7 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
             value <- spaces *> parseJson <* spaces 
             return (rawString key, value)
         rawString (JSString x) = x
+        rawString _ = error "rawString: must receive JSString"
     parseBoolean = JSBoolean <$> (parseTrue <|> parseFalse)
       where
         parseTrue = do P.try (spaces *> P.string "true" *> spaces); return True
