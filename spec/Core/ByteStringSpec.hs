@@ -1,22 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Core.ByteStringSpec where
 
-import qualified Data.ByteString.Char8          as BS
 import qualified Data.Map.Strict                as M
 import Core.ByteString
 import SpecHelper
 
 spec :: Spec
-spec = do
-    describe "Core.ByteStringSpec" $ do
+spec = 
+    describe "Core.ByteStringSpec" $ 
         context "Simple Text" $ do
-            it "parses simple string" $ do
+            it "parses simple string" $ 
                 splitAndDecode '&' " hello = hihi" `shouldBe`
                     M.fromList [("hello", "hihi")]
-            it "parses url-encoded string" $ do
+            it "parses url-encoded string" $ 
                 splitAndDecode '&' " a%20a=  %30hi" `shouldBe`
                     M.fromList [("a a", "0hi")]
-            it "parses three arguments" $ do
+            it "parses three arguments" $ 
                 splitAndDecode ';' " hello=hihi;a     =b; c = e" `shouldBe`
                     M.fromList [("hello", "hihi"), ("a", "b"), ("c", "e")]
 

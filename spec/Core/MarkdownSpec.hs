@@ -1,17 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Core.MarkdownSpec where
 
-import qualified Data.ByteString.Char8       as BS
-import qualified Data.Map.Strict                as M
 import Core.Markdown
 import SpecHelper
 
 
 spec :: Spec
-spec = do
-    describe "Core.MarkdownSpec" $ do
-        context "Simple Text" $ do
-            it "parses simple string" $ do
+spec = 
+    describe "Core.MarkdownSpec" $ 
+        context "Simple Text" $ 
+            it "parses simple string" $ 
                 parse "#### Hello\n\n" `shouldBe`
                     Markdown [H4 "Hello"]
 
