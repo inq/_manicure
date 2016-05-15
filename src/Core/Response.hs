@@ -24,7 +24,7 @@ instance Show Handler where
 
 render :: Response -> BS.ByteString
 -- ^ Render to the ByteString
-render (Response version 200 cookies content) =
+render (Response _ 200 cookies content) =
     BS.concat (
       ["HTTP/1.0 200 OK\r\n"] ++ 
       map cookieToString cookies ++
@@ -35,7 +35,7 @@ render (Response version 200 cookies content) =
       ])
   where
     cookieToString cookie = BS.concat ["Set-Cookie: ", cookie, "; path=/\r\n"]
-render (Response version 404 _ content) =
+render (Response _ 404 _ content) =
     BS.concat (
       ["HTTP/1.0 404 Not Found\r\n"] ++ 
       [
@@ -43,11 +43,19 @@ render (Response version 404 _ content) =
         "\r\n\r\n", 
         content
       ])
-render (Response version 303 cookies url) =
+render (Response _ 303 cookies url) =
     BS.concat (
       ["HTTP/1.0 303 See Other\r\n",
         "Location: ", url,
         "\r\n\r\n"
+      ])
+render (Response _ _ _ content) =
+    BS.concat (
+      ["HTTP/1.0 500 Internal Error\r\n"] ++ 
+      [
+        "Content-Length: ", BS.pack $ show $ BS.length content,
+        "\r\n\r\n", 
+        content
       ])
 
 defaultVersion :: Http.Version
