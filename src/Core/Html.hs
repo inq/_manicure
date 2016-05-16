@@ -48,7 +48,10 @@ instance TS.Lift Node where
           $(parseFile fileName)
         |]
     lift (If attrs nodes) = [|
-          case $(return $ (TS.VarE . TS.mkName) (head attrs)) of
+          case $(return $
+                  (foldl (\a b -> TS.AppE a b)
+                    ((TS.VarE . TS.mkName . head) attrs)
+                    (map (TS.VarE . TS.mkName) (tail attrs)))) of
             True -> BS.concat nodes
             _ -> ""
         |]
