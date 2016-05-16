@@ -25,6 +25,7 @@ test-suite spec
                    , Core.JsonSpec
                    , Core.MarkdownSpec
                    , Core.ModelSpec
+                   , Core.HtmlSpec
                    , SpecHelper
   default-language:  Haskell2010
 library 

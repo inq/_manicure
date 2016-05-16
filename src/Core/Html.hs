@@ -20,6 +20,7 @@ data Node = Tag String [Attr] [Node]
           | Text String
           | Value String
           | Foreach String [String] [Node]
+          | Render String
           deriving Show
 data Status = Child | Sibling | Parent
           deriving Show
@@ -42,7 +43,9 @@ instance TS.Lift Node where
               (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> BS.concat nodes)
               $(return $ TS.VarE $ TS.mkName vals) 
         |]
-       
+    lift (Render fileName) = [|
+          $(parseFile fileName)
+        |]
     lift (Text a) = [| UTF8.fromString a |]
     lift (Value a) = [| ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
 
@@ -69,13 +72,13 @@ parse = TQ.QuasiQuoter {
   where
     quoteExp str = do
         case P.parseOnly parseNode (BS.pack str) of
-            Left err -> undefined
             Right tag -> [| tag |]
+            Left _    -> undefined
 
 parseLine :: P.Parser (Int, Node)
 parseLine = do
     nextIndent <- parseIndent
-    tag <- (valueNode <|> textNode <|> mapNode <|> tagNode) <* P.char '\n'
+    tag <- (valueNode <|> textNode <|> mapNode <|> renderNode <|> tagNode) <* P.char '\n'
     return (nextIndent, tag)
   where
     tagNode = Tag
@@ -87,6 +90,8 @@ parseLine = do
         parseArg = Attr
             <$> (BS.unpack <$> (P.noneOf " :"))
             <*> (BS.unpack <$> (P.token ':' *> P.noneOf1 ",}"))
+    renderNode = Render
+        <$> (BS.unpack <$> (P.string "- render " *> P.noneOf " \n"))
     mapNode = Foreach
         <$> (BS.unpack <$> (P.string "- foreach " *> P.noneOf " "))
         <*> (map BS.unpack <$> (P.string " -> " *> (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
@@ -109,6 +114,7 @@ buildTree ((indent, node) : rest)
     (next, res, remaining) = buildTree rest
     replace (Foreach vals val _) = Foreach vals val
     replace (Tag name attr _) = Tag name attr
+    replace (Render _) = error "indentation error"
     replace (Text _) = error "indentation error"
     replace (Value _) = error "indentation error"
 buildTree []  = 
