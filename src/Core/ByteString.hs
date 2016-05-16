@@ -12,7 +12,7 @@ class StringFamily a where
 instance StringFamily BS.ByteString where
     convert bs = bs
 instance StringFamily String where
-    convert str = UTF8.fromString str
+    convert = UTF8.fromString
 
 type QueryString = M.Map BS.ByteString BS.ByteString
 

@@ -11,10 +11,10 @@ type Handler = [BS.ByteString] -> Action
 type Action = DB.Connection -> Req.Request -> IO Response
 
 data Response = Response {
-  version :: Http.Version,
-  statusCode :: Int,
+  version :: {-# UNPACK #-} !Http.Version,
+  statusCode :: {-# UNPACK #-} !Int,
   cookies :: [BS.ByteString],
-  content :: BS.ByteString
+  content :: {-# UNPACK #-} !BS.ByteString
 } deriving Show
 
 instance Show (BS.ByteString -> Handler) where

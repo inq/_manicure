@@ -15,7 +15,7 @@ import qualified Data.Map.Strict                  as M
 import qualified Core.Parser                      as P
 
 data Routes = Routes [Route]
-data Route = Route String Req.Method String
+data Route = Route String {-# UNPACK #-} !Req.Method String
 data RouteTree = Node (M.Map BS.ByteString RouteTree) (M.Map Req.Method Res.Handler)
     deriving Show
 
@@ -52,17 +52,17 @@ makeNode [] method action =
 match :: BS.ByteString -> Req.Method -> RouteTree -> Maybe Res.Action
 -- ^ Find a corresponding route from the given request URI
 match uri method tree =
-    case M.lookup method map of
+    case M.lookup method _map of
         Just res -> Just $ res $ reverse args
         Nothing  -> Nothing
   where
-    (Node _ map, args) = findNode uriTokens tree []
+    (Node _ _map, args) = findNode uriTokens tree []
     uriTokens = filter (not . BS.null) $ BS.split '/' uri
-    findNode (head : tail) (Node children _) params = 
-        case M.lookup head children of
-            Just a  -> findNode tail a params
+    findNode (_head : _tail) (Node children _) params = 
+        case M.lookup _head children of
+            Just a  -> findNode _tail a params
             Nothing -> case M.lookup "#String" children of
-                Just a -> findNode tail a (head : params)
+                Just a -> findNode _tail a (_head : params)
                 Nothing -> (Node M.empty M.empty, [])
     findNode [] node params = (node, params)
     

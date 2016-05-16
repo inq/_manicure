@@ -11,12 +11,11 @@ import qualified Database.Redis                   as R
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.Text.Encoding               as EN
 import Database.MongoDB ((=:))
-import Control.Monad.Trans (MonadIO, liftIO)
+import Control.Monad.Trans (MonadIO)
 import Control.Monad.Trans.Control (MonadBaseControl)
-import System.IO.Pipeline
 import Data.Text
 
-data Connection = Connection R.Connection M.Pipe Text
+data Connection = Connection {-# UNPACK #-} !R.Connection {-# UNPACK #-} !M.Pipe {-# UNPACK #-} !Text
 
 instance M.Val BS.ByteString where
 -- ^ BSON instance for ByteString
@@ -33,7 +32,7 @@ connect db = do
 redisSet :: Connection -> BS.ByteString -> BS.ByteString -> IO ()
 -- ^ Write a bytestring to redis
 redisSet (Connection r _ _) key value = do
-    res <- R.runRedis r $ R.set key value
+    _ <- R.runRedis r $ R.set key value
     return ()
 
 redisHashGet :: Connection -> BS.ByteString -> IO [(BS.ByteString, BS.ByteString)]
@@ -50,20 +49,19 @@ redisGet (Connection r _ _) key = do
 
 runRedis :: Connection -> R.Redis a -> IO a
 -- ^ A wrapper for runRedis
-runRedis (Connection r _ _) redis = R.runRedis r redis
+runRedis (Connection r _ _) = R.runRedis r
 
 query :: MonadIO m => Connection -> M.Action m a -> m a
 -- ^ Send the given query
-query (Connection _ pipe db) action = do
-    M.access pipe M.master db action
+query (Connection _ pipe db) = 
+    M.access pipe M.master db
 
 close :: M.Pipe -> IO ()
 -- ^ Close the connection
-close pipe = do
-    M.close pipe
+close = M.close 
 
 find :: (MonadIO m, MonadBaseControl IO m)  => M.Action m [M.Document]
 -- ^ ** Find articles
-find = do
+find = 
     (M.find $ M.select [] "users") >>= M.rest
 
