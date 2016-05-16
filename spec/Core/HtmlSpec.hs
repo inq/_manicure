@@ -8,7 +8,7 @@ import SpecHelper
 
 spec :: Spec
 spec = 
-  describe "Core.HtmlSpec" $ 
+  describe "Core.HtmlSpec" $ do
     context "Simple Text" $ do
       it "parses simple tag" $ 
         [parse|html
@@ -34,9 +34,23 @@ spec =
               p
                 = title
           |] `shouldBe` "<html><div><p>A</p><p>B</p></div></html>"
-     where
-      theValue = "VALUE" :: BS.ByteString
-      people = [["A", "B"] :: [BS.ByteString]]
+    context "External File" $ do
+      it "parses simple partial" $
+        [parse|html
+          p
+            - render simple.qh
+          |] `shouldBe` "<html><p><div>Hello</div></p></html>"
+      it "parses simple variable" $
+        [parse|html
+          ul
+            - foreach people -> name, title
+              - render variable.qh
+          |] `shouldBe` "<html><ul><li><span>A</span><pan>B</pan></li></ul></html>"
+ where
+  theValue = "VALUE" :: BS.ByteString
+  people = [["A", "B"] :: [BS.ByteString]]
+        
+
 
 main :: IO ()
 main = hspec spec
