@@ -1,2 +1,4 @@
 div
   | Hello
+span { class: "hihi" }
+  | ho?

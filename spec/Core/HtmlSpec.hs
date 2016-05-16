@@ -39,7 +39,7 @@ spec =
         [parse|html
           p
             - render simple.qh
-          |] `shouldBe` "<html><p><div>Hello</div></p></html>"
+          |] `shouldBe` "<html><p><div>Hello</div><span class=\"hihi\" >ho?</span></p></html>"
       it "parses simple variable" $
         [parse|html
           ul

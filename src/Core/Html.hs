@@ -23,8 +23,12 @@ data Node = Tag String [Attr] [Node]
           | Render String
           | If [String] [Node]
           deriving Show
+data Html = Html [Node]
 data Status = Child | Sibling | Parent
           deriving Show
+
+instance TS.Lift Html where
+    lift (Html nodes) = [| BS.concat nodes |]
 
 instance TS.Lift Node where
     lift (Tag string attrs nodes) = [| 
@@ -133,9 +137,9 @@ buildTree ((indent, node) : rest)
 buildTree []  = 
     (0, [], [])
 
-parseNode :: P.Parser Node
+parseNode :: P.Parser Html
 -- ^ The main parser
 parseNode = do
     nodes <- P.many parseLine
     let (_, res, _) = buildTree nodes
-    return $ head res
+    return (Html res)
