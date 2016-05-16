@@ -10,15 +10,15 @@ import qualified Data.Map.Strict                  as M
 import qualified Data.Time.Clock                  as TC
 import qualified Core.Parser                      as P
 import Database.MongoDB (ObjectId)
-import Data.Char (chr)
+import Data.Char (chr, isDigit)
 import Control.Applicative ((<|>))
 
-data Json = JSString BS.ByteString
-    | JSInt Int
-    | JSObject (M.Map BS.ByteString Json)
-    | JSArray [Json]
-    | JSBoolean Bool
-    | JSObjectId BS.ByteString
+data Json = JSString {-# UNPACK #-} !BS.ByteString
+    | JSInt {-# UNPACK #-} !Int
+    | JSObject !(M.Map BS.ByteString Json)
+    | JSArray ![Json]
+    | JSBoolean !Bool
+    | JSObjectId {-# UNPACK #-} !BS.ByteString
     | JSNil
     deriving (Eq, Show)
 
@@ -61,7 +61,7 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
             ('t',  '\t'),
             ('b',  '\b')
           ]
-        isHexDigit w = (w >= '0' && w <= '9') ||
+        isHexDigit w = isDigit w ||
                        (w >= 'A' && w <= 'F') ||
                        (w >= 'a' && w <= 'f')
         anyChar = escaped <|> P.anyChar

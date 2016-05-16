@@ -9,12 +9,9 @@ import qualified Core.Http                        as Http
 import qualified Network.Socket                   as NS
 import qualified Data.Char                        as C
 import qualified Data.Map                         as M
-import qualified Network.HTTP.Types.URI           as URI
-import qualified Data.Either                      as E
 import qualified Core.ByteString                  as ByteString
 import qualified Core.Parser                      as P
-import Data.Word (Word8)
-import Control.Applicative ((*>), (<*), (<$>), (<*>), many)
+import Control.Applicative (many)
 
 data Request = Request {
   method    :: Method,
@@ -38,12 +35,14 @@ instance TS.Lift Method where
     lift PATCH   = [| PATCH   |]
     lift TRACE   = [| TRACE   |]
     lift OPTIONS = [| OPTIONS |]
+    lift HEAD    = [| HEAD    |]
     lift CONNECT = [| CONNECT |]
 
 strToMethod :: String -> Method
 -- ^ Convert strings to the corresponding method
 strToMethod "GET" = GET
 strToMethod "POST" = POST
+strToMethod _ = error "not implemented"
 
 type RequestHeaders = [Header]
 type Header = (BS.ByteString, BS.ByteString)
@@ -53,18 +52,17 @@ extractCookie :: Request -> M.Map BS.ByteString BS.ByteString
 extractCookie req = 
     findCookie $ headers req
   where
-    findCookie (("Cookie", context) : tail) = ByteString.splitAndDecode ';' context
-    findCookie (head : tail)                = findCookie tail
-    findCookie []                           = M.empty
+    findCookie (("Cookie", context) : _) = ByteString.splitAndDecode ';' context
+    findCookie (_ : t)                   = findCookie t
+    findCookie []                        = M.empty
 
 parse :: BS.ByteString -> NS.Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
-parse ipt socket = 
-    parseHead head res post socket
+parse ipt = parseHead _head res _post 
   where 
-    post  = ByteString.splitAndDecode '&' pdata
-    (head, res, pdata) = case P.parseOnly request ipt of
-        Right res -> res
+    _post  = ByteString.splitAndDecode '&' pdata
+    (_head, res, pdata) = case P.parseOnly request ipt of
+        Right _res -> _res
         Left  str -> error str
     request = (,,)
         <$> (P.takeTill P.isEndOfLine <* P.endOfLine)
@@ -78,17 +76,17 @@ splitLines :: BS.ByteString -> [BS.ByteString]
 -- ^ Split the lines from the HTTP header
 splitLines str =
     case BS.elemIndex '\r' str of
-        Just i | i > 2 -> BS.take i str : (splitLines $ BS.drop (i + 2) str)
-        Just i         -> [BS.drop 2 str]
+        Just i | i > 2 -> BS.take i str : splitLines (BS.drop (i + 2) str)
+        Just _         -> [BS.drop 2 str]
         Nothing        -> [""]
 
         
 parseHead :: BS.ByteString -> RequestHeaders -> ByteString.QueryString -> NS.Socket -> Request
 -- ^ Parse the first line of the HTTP header
-parseHead str headers query socket =
-    Request method version uri headers query queryString socket
+parseHead str _headers query =
+    Request _method _version _uri _headers query queryString
   where
-    method = case BS.index str 0 of
+    _method = case BS.index str 0 of
         'G' -> GET
         'D' -> DELETE
         'C' -> CONNECT
@@ -99,8 +97,8 @@ parseHead str headers query socket =
             'P' -> OPTIONS
             'E' -> HEAD
             _   -> TRACE
-    length = BS.length str
-    uriLong = BS.drop (offset method) $ BS.take (length - 9) str
+    _length = BS.length str
+    uriLong = BS.drop (offset _method) $ BS.take (_length - 9) str
       where
         offset :: Method -> Int
         offset GET     = 4
@@ -110,11 +108,11 @@ parseHead str headers query socket =
         offset OPTIONS = 7
         offset CONNECT = 7
         offset _       = 6
-    (uri, queryStringRaw) = BS.break (== '?') uriLong
+    (_uri, queryStringRaw) = BS.break (== '?') uriLong
     queryStringTail | BS.null queryStringRaw        = ""
                     | BS.head queryStringRaw == '?' = BS.tail queryStringRaw
                     | otherwise                     = ""
     queryString = ByteString.splitAndDecode '&' queryStringTail
-    version = Http.Version 
-        (C.digitToInt $ BS.index str (length - 3)) 
-        (C.digitToInt $ BS.index str (length - 1))
+    _version = Http.Version 
+        (C.digitToInt $ BS.index str (_length - 3)) 
+        (C.digitToInt $ BS.index str (_length - 1))

@@ -13,14 +13,14 @@ import qualified Data.Char                        as C
 import qualified Data.Typeable                    as T
 import qualified Core.Json                        as Json
 import qualified Data.Map.Strict                  as M
-import qualified Core.Database                    as DB
 import qualified Database.MongoDB                 as Mongo
 import qualified Data.Text                        as TXT
+import Core.Database ()
 import GHC.Generics ((:*:)(..))
 import Database.MongoDB ((=:))
 
 data ModelInfo a = ModelInfo 
-  { table :: !BS.ByteString
+  { table :: {-# UNPACK #-} !BS.ByteString
   , fields :: ![(BS.ByteString, T.TypeRep)]
   } deriving (Show)
 
@@ -62,9 +62,9 @@ instance
 
 instance (Json.ToJson a) => GModel (GN.K1 GN.R a) where
 -- ^ Parameter (Par ==> Rec)
-    gFields s = undefined
+    gFields _ = undefined
     gToJson s = Json.toJson $ GN.unK1 s
-    gToDocument s = undefined
+    gToDocument _ = undefined
 instance (GModel f) => GModel (GN.M1 GN.C c f) where
 -- ^ Constructor
     gFields = gFields . GN.unM1

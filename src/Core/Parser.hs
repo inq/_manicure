@@ -11,7 +11,7 @@ import Prelude hiding (takeWhile)
 
 type Parser = AC.Parser
 
-token :: Char -> Parser (W.Word8)
+token :: Char -> Parser W.Word8
 token c = spaces *> char c <* spaces
 
 isHorizontalSpace :: W.Word8 -> Bool

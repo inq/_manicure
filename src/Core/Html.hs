@@ -13,17 +13,17 @@ import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
 import Control.Applicative ((<|>))
 
-data Attr = Dash String [Attr]
-          | Attr String String
+data Attr = Dash !String ![Attr]
+          | Attr !String !String
           deriving Show
-data Node = Tag String [Attr] [Node]
-          | Text String
-          | Value String
-          | Foreach String [String] [Node]
-          | Render String
-          | If [String] [Node]
+data Node = Tag !String ![Attr] ![Node]
+          | Text !String
+          | Value !String
+          | Foreach !String ![String] ![Node]
+          | Render !String
+          | If ![String] ![Node]
           deriving Show
-data Html = Html [Node]
+data Html = Html ![Node]
 data Status = Child | Sibling | Parent
           deriving Show
 

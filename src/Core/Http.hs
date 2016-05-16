@@ -6,12 +6,12 @@ import qualified Data.ByteString.Char8          as BS
 import Control.Lens ((^.))
 
 data Version = Version {
-  major :: !Int,
-  minor :: !Int
+  major :: {-# UNPACK #-} !Int,
+  minor :: {-# UNPACK #-} !Int
 } deriving (Show)
 
 
-fetch :: BS.ByteString -> IO (BS.ByteString)
+fetch :: BS.ByteString -> IO BS.ByteString
 fetch url = do
     response <- Wreq.get $ BS.unpack url
     return $ BS.concat $ BSL.toChunks (response ^. Wreq.responseBody)

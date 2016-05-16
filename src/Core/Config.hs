@@ -11,7 +11,7 @@ import qualified Language.Haskell.TH.Quote      as TQ
 import qualified Data.Map.Strict                as M
 import Control.Arrow ((***))
 
-data Config = Config [(String, String)]
+data Config = Config ![(String, String)]
 
 instance TS.Lift Config where
     lift (Config list) = [|
@@ -35,7 +35,7 @@ parseFile filePath = do
         case P.parseOnly parseData (BS.pack str) of
             Right tag -> [| tag |]
             Left _ -> undefined
-    parseData = Config <$> (P.many parseLine)
+    parseData = Config <$> P.many parseLine
     parseLine = do
         key <- (P.many . P.char) '\n' *> P.noneOf1 " =" <* (P.many . P.char) ' '
         value <- P.char '=' *> (P.many . P.char) ' ' *> P.noneOf1 "\n" <* (P.many . P.char) '\n'
