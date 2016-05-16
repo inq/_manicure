@@ -21,6 +21,7 @@ data Node = Tag String [Attr] [Node]
           | Value String
           | Foreach String [String] [Node]
           | Render String
+          | If [String] [Node]
           deriving Show
 data Status = Child | Sibling | Parent
           deriving Show
@@ -45,6 +46,11 @@ instance TS.Lift Node where
         |]
     lift (Render fileName) = [|
           $(parseFile fileName)
+        |]
+    lift (If attrs nodes) = [|
+          case $(return $ (TS.VarE . TS.mkName) (head attrs)) of
+            True -> BS.concat nodes
+            _ -> ""
         |]
     lift (Text a) = [| UTF8.fromString a |]
     lift (Value a) = [| ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
@@ -78,7 +84,7 @@ parse = TQ.QuasiQuoter {
 parseLine :: P.Parser (Int, Node)
 parseLine = do
     nextIndent <- parseIndent
-    tag <- (valueNode <|> textNode <|> mapNode <|> renderNode <|> tagNode) <* P.char '\n'
+    tag <- (valueNode <|> textNode <|> mapNode <|> renderNode <|> ifNode <|> tagNode) <* P.char '\n'
     return (nextIndent, tag)
   where
     tagNode = Tag
@@ -92,6 +98,9 @@ parseLine = do
             <*> (BS.unpack <$> (P.token ':' *> P.noneOf1 ",}"))
     renderNode = Render
         <$> (BS.unpack <$> (P.string "- render " *> P.noneOf " \n"))
+    ifNode = If
+        <$> (map BS.unpack <$> (P.string "- if " *> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' ')))
+        <*> return []
     mapNode = Foreach
         <$> (BS.unpack <$> (P.string "- foreach " *> P.noneOf " "))
         <*> (map BS.unpack <$> (P.string " -> " *> (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
@@ -114,6 +123,7 @@ buildTree ((indent, node) : rest)
     (next, res, remaining) = buildTree rest
     replace (Foreach vals val _) = Foreach vals val
     replace (Tag name attr _) = Tag name attr
+    replace (If args _) = If args
     replace (Render _) = error "indentation error"
     replace (Text _) = error "indentation error"
     replace (Value _) = error "indentation error"

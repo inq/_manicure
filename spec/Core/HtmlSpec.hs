@@ -46,9 +46,26 @@ spec =
             - foreach people -> name, title
               - render variable.qh
           |] `shouldBe` "<html><ul><li><span>A</span><pan>B</pan></li></ul></html>"
+    context "If statement" $ do      
+      it "parses true statement" $
+        [parse|html
+          div
+            - if trueStatement
+              p
+                | Hello
+          |] `shouldBe` "<html><div><p>Hello</p></div></html>"
+      it "parses false statement" $
+        [parse|html
+          div
+            - if falseStatement
+              p
+                | Hello
+          |] `shouldBe` "<html><div></div></html>"
  where
   theValue = "VALUE" :: BS.ByteString
   people = [["A", "B"] :: [BS.ByteString]]
+  trueStatement = True
+  falseStatement = False
         
 
 
