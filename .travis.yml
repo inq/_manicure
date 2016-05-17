@@ -5,6 +5,8 @@ cache:
   directories:
   - $HOME/.stack
 
+services: mongodb
+
 matrix:
   include:
   - env: CABAL=1.22 GHC=7.10.3 LLVM=3.5
