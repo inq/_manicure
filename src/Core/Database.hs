@@ -9,20 +9,13 @@ module Core.Database
 import qualified Database.MongoDB                 as M
 import qualified Database.Redis                   as R
 import qualified Data.ByteString.Char8            as BS
-import qualified Data.Text.Encoding               as EN
 import Database.MongoDB ((=:))
 import Control.Monad.Trans (MonadIO)
 import Control.Monad.Trans.Control (MonadBaseControl)
-import Data.Text
 
-data Connection = Connection {-# UNPACK #-} !R.Connection {-# UNPACK #-} !M.Pipe {-# UNPACK #-} !Text
+data Connection = Connection {-# UNPACK #-} !R.Connection {-# UNPACK #-} !M.Pipe {-# UNPACK #-} !M.Database
 
-instance M.Val BS.ByteString where
--- ^ BSON instance for ByteString
-    val = M.String . EN.decodeUtf8
-    cast' _ = Nothing
-
-connect :: Text -> IO Connection
+connect :: BS.ByteString -> IO Connection
 -- ^ Open the new DB connection
 connect db = do
     mongo <- M.connect $ M.host "127.0.0.1"

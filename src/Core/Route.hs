@@ -14,9 +14,9 @@ import qualified Core.Response                    as Res
 import qualified Data.Map.Strict                  as M
 import qualified Core.Parser                      as P
 
-data Routes = Routes [Route]
-data Route = Route String {-# UNPACK #-} !Req.Method String
-data RouteTree = Node (M.Map BS.ByteString RouteTree) (M.Map Req.Method Res.Handler)
+data Routes = Routes ![Route]
+data Route = Route !String !Req.Method !String
+data RouteTree = Node !(M.Map BS.ByteString RouteTree) !(M.Map Req.Method Res.Handler)
     deriving Show
 
 instance TS.Lift Route where

@@ -14,7 +14,6 @@ import qualified System.Directory               as D
 import qualified Core.Route                     as Route
 import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
-import qualified Data.Text                      as T
 import qualified Control.Monad                  as M
 
 daemonize :: String -> String -> String -> IO () -> IO ()
@@ -50,7 +49,7 @@ daemonize pidFile stdOut stdErr process = do
         putStrLn ("pid file exists: " ++ pid)
         PS.signalProcess PS.sigQUIT $ read pid
 
-run :: Route.RouteTree -> BS.ByteString -> T.Text -> String -> IO ()
+run :: Route.RouteTree -> BS.ByteString -> BS.ByteString -> String -> IO ()
 -- ^ Run the given RouteTree
 run routeTree response404 databaseName socketFile = N.withSocketsDo $ do
     removeExistingSocket socketFile

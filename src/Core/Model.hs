@@ -14,7 +14,6 @@ import qualified Data.Typeable                    as T
 import qualified Core.Json                        as Json
 import qualified Data.Map.Strict                  as M
 import qualified Database.MongoDB                 as Mongo
-import qualified Data.Text                        as TXT
 import Core.Database ()
 import GHC.Generics ((:*:)(..))
 import Database.MongoDB ((=:))
@@ -58,7 +57,7 @@ instance
     gToDocument s = 
         case Mongo.val (GN.unK1 $ GN.unM1 s) of
             Mongo.Null -> []
-            val        -> [(TXT.pack $ GN.selName s) =: val]
+            val        -> [(BS.pack $ GN.selName s) =: val]
 
 instance (Json.ToJson a) => GModel (GN.K1 GN.R a) where
 -- ^ Parameter (Par ==> Rec)

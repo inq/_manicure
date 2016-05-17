@@ -39,16 +39,16 @@ spec =
             ])
       it "parses bson with postId" $ 
         gToDocument (GN.from dataWithPostId) `shouldBe`
-          [ "postId" =: ("Hello" :: String)
+          [ "postId" =: ("Hello" :: BS.ByteString)
           , "count" =: (3 :: Int)
-          , "email" =: ("hello@world.com" :: String)
-          , "password" =: ("SHA256" :: String)
+          , "email" =: ("hello@world.com" :: BS.ByteString)
+          , "password" =: ("SHA256" :: BS.ByteString)
           ]
       it "parses bson without postId" $ 
         gToDocument (GN.from dataWithoutPostId) `shouldBe`
           [ "count" =: (2 :: Int)
-          , "email" =: ("admin@hello.com" :: String)
-          , "password" =: ("MD5" :: String)
+          , "email" =: ("admin@hello.com" :: BS.ByteString)
+          , "password" =: ("MD5" :: BS.ByteString)
           ]
      where
       dataWithPostId = Post (Just "Hello") 3 "hello@world.com" "SHA256"

@@ -1,5 +1,8 @@
 resolver: lts-5.17
 packages:
+- '.'
+- 'deps/bson'
+- 'deps/mongodb'
 extra-deps: []
 flags: {}
 extra-package-dbs: []
