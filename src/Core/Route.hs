@@ -97,7 +97,7 @@ routeNode = do
     _ <- P.many $ P.char ' '
     action <- P.noneOf1 "\n"
     _ <- P.many $ P.char '\n'
-    return $ Route (BS.unpack uri) (Req.strToMethod $ BS.unpack method) $ BS.unpack action
+    return $ Route (BS.unpack uri) (read $ BS.unpack method) $ BS.unpack action
 
 routesNode :: P.Parser Routes
 -- ^ The main parser

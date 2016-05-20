@@ -25,7 +25,7 @@ data Request = Request {
 
 data Method = GET | POST | PUT | DELETE | PATCH
   | TRACE | OPTIONS | HEAD | CONNECT
-  deriving (Show, Eq, Ord)
+  deriving (Show, Read, Eq, Ord)
 
 instance TS.Lift Method where
     lift GET     = [| GET     |]
@@ -37,12 +37,6 @@ instance TS.Lift Method where
     lift OPTIONS = [| OPTIONS |]
     lift HEAD    = [| HEAD    |]
     lift CONNECT = [| CONNECT |]
-
-strToMethod :: String -> Method
--- ^ Convert strings to the corresponding method
-strToMethod "GET" = GET
-strToMethod "POST" = POST
-strToMethod _ = error "not implemented"
 
 type RequestHeaders = [Header]
 type Header = (BS.ByteString, BS.ByteString)
