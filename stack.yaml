@@ -1,8 +1,14 @@
 resolver: lts-5.17
 packages:
 - '.'
-- 'deps/bson'
-- 'deps/mongodb'
+- location: 
+    git: 'https://github.com/inq/bson.git'
+    commit: '7b89a2886e31cd8dfe15109ae831d2902a31cb78'
+  extra-dep: true
+- location:
+    git: 'https://github.com/inq/mongodb.git'
+    commit: 'bc25d6d749676e2e2c6077fbd8bc21eb91113965'
+  extra-dep: true
 extra-deps: []
 flags: {}
 extra-package-dbs: []

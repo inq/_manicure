@@ -1,6 +1,0 @@
-[submodule "deps/bson"]
-	path = deps/bson
-	url = https://github.com/inq/bson.git
-[submodule "deps/mongodb"]
-	path = deps/mongodb
-	url = https://github.com/inq/mongodb.git
