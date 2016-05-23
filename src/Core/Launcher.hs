@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Core.Launcher where
 
 import qualified Network                        as N
@@ -15,6 +16,7 @@ import qualified Core.Route                     as Route
 import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
 import qualified Control.Monad                  as M
+import qualified Data.List                      as L
 
 daemonize :: String -> String -> String -> IO () -> IO ()
 -- ^ Daemonize the given function
@@ -74,11 +76,11 @@ acceptSocket routeTree response404 socketFd db = do
 acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
-    req <- NSB.recv fd 4096
-    let request = Req.parse req fd
+    (req, remaining) <- Req.receiveHeader fd
+    let req' = BS.concat (L.intersperse "\r\n" req ++ ["\r\n"])
+    let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request
-    putStrLn "acceptBody"
     response <- case Route.match uri method routeTree of
                     Just handler -> do
                         putStrLn "handler"
@@ -89,4 +91,3 @@ acceptBody routeTree response404 fd db = do
     print response
     NSB.sendAll fd $ Res.render response
     NS.sClose fd
-

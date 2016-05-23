@@ -6,11 +6,13 @@ module Core.Request where
 import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.Char8            as BS
 import qualified Core.Http                        as Http
+import qualified Network.Socket.ByteString        as NSB 
 import qualified Network.Socket                   as NS
 import qualified Data.Char                        as C
 import qualified Data.Map                         as M
 import qualified Core.ByteString                  as ByteString
 import qualified Core.Parser                      as P
+import Control.Monad (when)
 import Control.Applicative (many)
 
 data Request = Request {
@@ -40,6 +42,28 @@ instance TS.Lift Method where
 
 type RequestHeaders = [Header]
 type Header = (BS.ByteString, BS.ByteString)
+
+type Lines = ([BS.ByteString], BS.ByteString)
+
+receiveHeader :: NS.Socket -> IO Lines
+-- ^ Receive header from the socket
+receiveHeader fd = do
+    buf <- NSB.recv fd 4096
+    when (BS.length buf == 0) $ error "Disconnected"
+    receiveHeader' [] buf 
+  where
+    receiveHeader' res buffer = do
+        let (line, remaining) = BS.breakSubstring "\r\n" buffer
+        let remaining' = BS.drop 2 remaining
+        if BS.length line == 0 
+            then return (res, remaining')
+            else if BS.length remaining' == 0
+                then do
+                   buf <- NSB.recv fd 4096
+                   if BS.length buf == 0
+                       then error "Disconnected"
+                       else receiveHeader' res $ BS.append remaining' buf
+                else receiveHeader' (line : res) remaining'
 
 extractCookie :: Request -> M.Map BS.ByteString BS.ByteString
 -- ^ Extract cookie from the request header
