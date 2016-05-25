@@ -5,6 +5,7 @@ module Core.Request where
 
 import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy.Char8       as LS
 import qualified Core.Http                        as Http
 import qualified Network.Socket.ByteString        as NSB 
 import qualified Network.Socket                   as NS
@@ -12,6 +13,7 @@ import qualified Data.Char                        as C
 import qualified Data.Map                         as M
 import qualified Core.ByteString                  as ByteString
 import qualified Core.Parser                      as P
+import qualified Data.Attoparsec.ByteString.Lazy  as AL
 import Control.Monad (when)
 import Control.Applicative (many)
 
@@ -74,14 +76,14 @@ extractCookie req =
     findCookie (_ : t)                   = findCookie t
     findCookie []                        = M.empty
 
-parse :: BS.ByteString -> NS.Socket -> Request
+parse :: LS.ByteString -> NS.Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
 parse ipt = parseHead _head res _post 
   where 
     _post  = ByteString.splitAndDecode '&' pdata
-    (_head, res, pdata) = case P.parseOnly request ipt of
-        Right _res -> _res
-        Left  str -> error str
+    (_head, res, pdata) = case P.parse request ipt of
+        AL.Done _ _res -> _res
+        _ -> error "parse error"
     request = (,,)
         <$> (P.takeTill P.isEndOfLine <* P.endOfLine)
         <*> many header 

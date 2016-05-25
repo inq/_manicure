@@ -4,6 +4,7 @@ module Core.Launcher where
 import qualified Network                        as N
 import qualified Network.Socket                 as NS
 import qualified Network.Socket.ByteString      as NSB 
+import qualified Network.Socket.ByteString.Lazy as NSL
 import qualified Data.ByteString.Char8          as BS
 import qualified Core.Database                  as DB
 import qualified Control.Concurrent             as CC
@@ -76,8 +77,9 @@ acceptSocket routeTree response404 socketFd db = do
 acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
-    (req, remaining) <- Req.receiveHeader fd
-    let req' = BS.concat (L.intersperse "\r\n" req ++ ["\r\n"])
+--    (req, remaining) <- Req.receiveHeader fd
+--    let req' = BS.concat (L.intersperse "\r\n" req ++ ["\r\n"])
+    req' <- NSL.recv fd 409600
     let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request
