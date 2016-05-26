@@ -78,25 +78,10 @@ acceptSocket routeTree response404 socketFd db = do
     _ <- CC.forkIO $ acceptBody routeTree response404 fd db
     acceptSocket routeTree response404 socketFd db
 
-receiveData :: NS.Socket -> IO LS.ByteString
--- ^ Receive the data from socket
-receiveData fd = loop
-  where
-    loop = unsafeInterleaveIO $ do 
-        putStrLn "<<<< RECV"
-        s <- NSB.recv fd 32
-        putStrLn "==== RECV"        
-        BS.putStrLn s
-        if BS.null s
-            then return LSI.Empty
-            else LSI.Chunk s <$> loop
-
 acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
---    (req, remaining) <- Req.receiveHeader fd
---    let req' = BS.concat (L.intersperse "\r\n" req ++ ["\r\n"])
-    req' <- receiveData fd
+    req' <- NSL.getContents fd
     let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request
