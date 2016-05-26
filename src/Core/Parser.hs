@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 module Core.Parser where
 
-import qualified Data.ByteString.Lazy             as L
+import qualified Data.ByteString.Lazy             as LS
 import qualified Data.ByteString                  as BS
 import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.Attoparsec.ByteString.Lazy  as AL
@@ -58,10 +58,10 @@ char :: Char -> Parser W.Word8
 char = AC.char8
 
 many :: MonadPlus m => m a -> m [a]
-many = AC.many'
+many = AL.many'
 
 many1 :: Alternative f => f a -> f [a]
-many1 = AC.many1
+many1 = AL.many1
 
 spaces :: Parser ()
 spaces = AL.skipWhile AC.isHorizontalSpace
@@ -81,7 +81,7 @@ sepBy = AC.sepBy
 string :: BS.ByteString -> Parser BS.ByteString
 string = AC.string
 
-parse :: Parser a -> L.ByteString -> AL.Result a
+parse :: Parser a -> LS.ByteString -> AL.Result a
 parse = AL.parse
 
 parseOnly :: Parser a -> BS.ByteString -> Either String a
