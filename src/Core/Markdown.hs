@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings    #-}
 module Core.Markdown where
 
-import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy             as LS
 import qualified Core.Parser                      as P
 import qualified Data.Attoparsec.ByteString.Lazy  as AL
@@ -18,11 +17,11 @@ data Item = H5  !LS.ByteString
           | Paragraph  !LS.ByteString 
           deriving (Eq, Show)
 
-parse :: LS.ByteString -> Markdown
+parse :: LS.ByteString -> Maybe Markdown
 -- ^ Parse the given bytestring
 parse str = case P.parse parseMarkdown str of
-    AL.Done _ val -> val
-    _    -> error "markdown: parse error"
+    AL.Done _ val -> Just val
+    _    -> Nothing
 
 parseItem :: P.Parser Item
 -- ^ The subparser
@@ -65,3 +64,7 @@ toStr (H2 str) = LS.concat ["<h2>", str, "</h2>"]
 toStr (H1 str) = LS.concat ["<h1>", str, "</h1>"]
 toStr (Quote str) = LS.concat ["<blockquote><p>", str, "</p></blockquote>"]
 toStr (Paragraph str) = LS.concat ["<p>", str, "</p>"]
+
+convert :: LS.ByteString -> Maybe LS.ByteString
+-- ^ Convert markdown to html
+convert markdown = toHtml <$> parse markdown
