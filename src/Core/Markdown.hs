@@ -2,25 +2,27 @@
 module Core.Markdown where
 
 import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy             as LS
 import qualified Core.Parser                      as P
+import qualified Data.Attoparsec.ByteString.Lazy  as AL
 import Control.Applicative ((<|>))
 
 data Markdown = Markdown [Item]
           deriving (Eq, Show)
-data Item = H5 {-# UNPACK #-} !BS.ByteString 
-          | H4 {-# UNPACK #-} !BS.ByteString
-          | H3 {-# UNPACK #-} !BS.ByteString
-          | H2 {-# UNPACK #-} !BS.ByteString
-          | H1 {-# UNPACK #-} !BS.ByteString
-          | Quote {-# UNPACK #-} !BS.ByteString
-          | Paragraph {-# UNPACK #-} !BS.ByteString 
+data Item = H5  !LS.ByteString 
+          | H4  !LS.ByteString
+          | H3  !LS.ByteString
+          | H2  !LS.ByteString
+          | H1  !LS.ByteString
+          | Quote  !LS.ByteString
+          | Paragraph  !LS.ByteString 
           deriving (Eq, Show)
 
-parse :: BS.ByteString -> Markdown
+parse :: LS.ByteString -> Markdown
 -- ^ Parse the given bytestring
-parse str = case P.parseOnly parseMarkdown str of
-    Right val -> val
-    Left _    -> undefined
+parse str = case P.parse parseMarkdown str of
+    AL.Done _ val -> val
+    _    -> error "markdown: parse error"
 
 parseItem :: P.Parser Item
 -- ^ The subparser
@@ -28,7 +30,7 @@ parseItem = (parseHeader <|> parseQuote <|> parseParagraph) <* P.many1 (P.char '
   where
     parseHeader = do
         sharps <- P.try (P.many1 (P.char '#')) <* P.spaces
-        rest <- P.noneOf1 "\n"
+        rest <- LS.fromStrict <$> P.noneOf1 "\n"
         return $ case length sharps of
             1 -> H1 rest
             2 -> H2 rest
@@ -38,10 +40,10 @@ parseItem = (parseHeader <|> parseQuote <|> parseParagraph) <* P.many1 (P.char '
             _ -> error "not implemented"
     parseQuote = do
         _ <- P.try (P.char '>') <* P.spaces
-        rest <- P.noneOf1 "\n"
+        rest <- LS.fromStrict <$> P.noneOf1 "\n"
         return $ Quote rest
     parseParagraph = do
-        rest <- P.noneOf1 "\n"
+        rest <- LS.fromStrict <$> P.noneOf1 "\n"
         return $ Paragraph rest
 
 parseMarkdown :: P.Parser Markdown
@@ -50,6 +52,16 @@ parseMarkdown = do
     items <- P.many1 parseItem
     return $ Markdown items
 
-toHtml :: Markdown -> BS.ByteString
+toHtml :: Markdown -> LS.ByteString
 -- ^ Generate html
-toHtml _ = ""
+toHtml (Markdown items) = LS.concat $ map toStr items
+
+toStr :: Item -> LS.ByteString
+-- ^ Convert item to string
+toStr (H5 str) = LS.concat ["<h5>", str, "</h5>"]
+toStr (H4 str) = LS.concat ["<h4>", str, "</h4>"]
+toStr (H3 str) = LS.concat ["<h3>", str, "</h3>"]
+toStr (H2 str) = LS.concat ["<h2>", str, "</h2>"]
+toStr (H1 str) = LS.concat ["<h1>", str, "</h1>"]
+toStr (Quote str) = LS.concat ["<blockquote><p>", str, "</p></blockquote>"]
+toStr (Paragraph str) = LS.concat ["<p>", str, "</p>"]
