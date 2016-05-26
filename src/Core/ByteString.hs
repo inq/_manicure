@@ -2,6 +2,7 @@
 module Core.ByteString where
 
 import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy.Char8       as L
 import qualified Data.Map                         as M
 import qualified Core.Parser                      as P
 import qualified Network.HTTP.Types.URI           as URI
@@ -10,9 +11,11 @@ import qualified Data.ByteString.UTF8             as UTF8
 class StringFamily a where
     convert :: a -> BS.ByteString
 instance StringFamily BS.ByteString where
-    convert bs = bs
+    convert = id
 instance StringFamily String where
     convert = UTF8.fromString
+instance StringFamily L.ByteString where
+    convert = L.toStrict
 
 type QueryString = M.Map BS.ByteString BS.ByteString
 

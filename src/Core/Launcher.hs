@@ -1,9 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Core.Launcher where
 
 import qualified Network                        as N
 import qualified Network.Socket                 as NS
 import qualified Network.Socket.ByteString      as NSB 
+import qualified Network.Socket.ByteString.Lazy as NSL
 import qualified Data.ByteString.Char8          as BS
+import qualified Data.ByteString.Lazy           as LS
 import qualified Core.Database                  as DB
 import qualified Control.Concurrent             as CC
 import qualified System.Posix.Process           as P
@@ -15,6 +18,10 @@ import qualified Core.Route                     as Route
 import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
 import qualified Control.Monad                  as M
+import qualified Data.List                      as L
+import qualified Data.ByteString.Lazy.Internal  as LSI
+import System.IO.Unsafe (unsafeInterleaveIO)
+
 
 daemonize :: String -> String -> String -> IO () -> IO ()
 -- ^ Daemonize the given function
@@ -74,11 +81,10 @@ acceptSocket routeTree response404 socketFd db = do
 acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
-    req <- NSB.recv fd 4096
-    let request = Req.parse req fd
+    req' <- NSL.getContents fd
+    let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request
-    putStrLn "acceptBody"
     response <- case Route.match uri method routeTree of
                     Just handler -> do
                         putStrLn "handler"
@@ -89,4 +95,3 @@ acceptBody routeTree response404 fd db = do
     print response
     NSB.sendAll fd $ Res.render response
     NS.sClose fd
-

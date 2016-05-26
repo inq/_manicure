@@ -5,12 +5,16 @@ module Core.Request where
 
 import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy.Char8       as LS
 import qualified Core.Http                        as Http
+import qualified Network.Socket.ByteString        as NSB 
 import qualified Network.Socket                   as NS
 import qualified Data.Char                        as C
 import qualified Data.Map                         as M
 import qualified Core.ByteString                  as ByteString
 import qualified Core.Parser                      as P
+import qualified Data.Attoparsec.ByteString.Lazy  as AL
+import Control.Monad (when)
 import Control.Applicative (many)
 
 data Request = Request {
@@ -41,6 +45,28 @@ instance TS.Lift Method where
 type RequestHeaders = [Header]
 type Header = (BS.ByteString, BS.ByteString)
 
+type Lines = ([BS.ByteString], BS.ByteString)
+
+receiveHeader :: NS.Socket -> IO Lines
+-- ^ Receive header from the socket
+receiveHeader fd = do
+    buf <- NSB.recv fd 4096
+    when (BS.length buf == 0) $ error "Disconnected"
+    receiveHeader' [] buf 
+  where
+    receiveHeader' res buffer = do
+        let (line, remaining) = BS.breakSubstring "\r\n" buffer
+        let remaining' = BS.drop 2 remaining
+        if BS.length line == 0 
+            then return (res, remaining')
+            else if BS.length remaining' == 0
+                then do
+                   buf <- NSB.recv fd 4096
+                   if BS.length buf == 0
+                       then error "Disconnected"
+                       else receiveHeader' res $ BS.append remaining' buf
+                else receiveHeader' (line : res) remaining'
+
 extractCookie :: Request -> M.Map BS.ByteString BS.ByteString
 -- ^ Extract cookie from the request header
 extractCookie req = 
@@ -50,18 +76,23 @@ extractCookie req =
     findCookie (_ : t)                   = findCookie t
     findCookie []                        = M.empty
 
-parse :: BS.ByteString -> NS.Socket -> Request
+parse :: LS.ByteString -> NS.Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
-parse ipt = parseHead _head res _post 
+parse ipt = parseHead _head res post'
   where 
-    _post  = ByteString.splitAndDecode '&' pdata
-    (_head, res, pdata) = case P.parseOnly request ipt of
-        Right _res -> _res
-        Left  str -> error str
-    request = (,,)
+    post' = ByteString.splitAndDecode '&' $ LS.toStrict content
+    content = LS.take contentLength pdata
+    contentLength = case M.lookup "Content-Length" $ M.fromList res of
+        Just len -> case BS.readInteger len of
+            Just num -> fromIntegral $ fst num
+            Nothing -> error "parse error"
+        Nothing -> 0
+    (_head, res, pdata) = case P.parse request ipt of
+        AL.Done remaining (h, r)  -> (h, r, remaining)
+        _ -> error "parse error"
+    request = (,)
         <$> (P.takeTill P.isEndOfLine <* P.endOfLine)
-        <*> many header 
-        <*> (P.endOfLine *> P.takeByteString)
+        <*> (many header <* P.endOfLine)
     header = (,)
         <$> (P.takeWhile P.isToken <* P.char ':' <* P.skipWhile P.isHorizontalSpace)
         <*> (P.takeTill P.isEndOfLine <* P.endOfLine)
