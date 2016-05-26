@@ -6,6 +6,7 @@ import qualified Network.Socket                 as NS
 import qualified Network.Socket.ByteString      as NSB 
 import qualified Network.Socket.ByteString.Lazy as NSL
 import qualified Data.ByteString.Char8          as BS
+import qualified Data.ByteString.Lazy           as LS
 import qualified Core.Database                  as DB
 import qualified Control.Concurrent             as CC
 import qualified System.Posix.Process           as P
@@ -18,6 +19,9 @@ import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
 import qualified Control.Monad                  as M
 import qualified Data.List                      as L
+import qualified Data.ByteString.Lazy.Internal  as LSI
+import System.IO.Unsafe (unsafeInterleaveIO)
+
 
 daemonize :: String -> String -> String -> IO () -> IO ()
 -- ^ Daemonize the given function
@@ -74,12 +78,25 @@ acceptSocket routeTree response404 socketFd db = do
     _ <- CC.forkIO $ acceptBody routeTree response404 fd db
     acceptSocket routeTree response404 socketFd db
 
+receiveData :: NS.Socket -> IO LS.ByteString
+-- ^ Receive the data from socket
+receiveData fd = loop
+  where
+    loop = unsafeInterleaveIO $ do 
+        putStrLn "<<<< RECV"
+        s <- NSB.recv fd 32
+        putStrLn "==== RECV"        
+        BS.putStrLn s
+        if BS.null s
+            then return LSI.Empty
+            else LSI.Chunk s <$> loop
+
 acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
 --    (req, remaining) <- Req.receiveHeader fd
 --    let req' = BS.concat (L.intersperse "\r\n" req ++ ["\r\n"])
-    req' <- NSL.recv fd 409600
+    req' <- receiveData fd
     let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request

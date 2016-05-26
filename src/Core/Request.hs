@@ -78,16 +78,16 @@ extractCookie req =
 
 parse :: LS.ByteString -> NS.Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
-parse ipt = parseHead _head res _post 
+parse ipt = parseHead _head res M.empty
   where 
-    _post  = ByteString.splitAndDecode '&' pdata
+    --_post  = ByteString.splitAndDecode '&' pdata
     (_head, res, pdata) = case P.parse request ipt of
-        AL.Done _ _res -> _res
+        AL.Done rem _res -> _res
         _ -> error "parse error"
     request = (,,)
         <$> (P.takeTill P.isEndOfLine <* P.endOfLine)
         <*> many header 
-        <*> (P.endOfLine *> P.takeByteString)
+        <*> (P.endOfLine)
     header = (,)
         <$> (P.takeWhile P.isToken <* P.char ':' <* P.skipWhile P.isHorizontalSpace)
         <*> (P.takeTill P.isEndOfLine <* P.endOfLine)
