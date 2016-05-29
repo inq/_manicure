@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 module Core.Markdown where
 
+import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy             as LS
 import qualified Core.Parser                      as P
 import qualified Data.Attoparsec.ByteString.Lazy  as AL
@@ -15,6 +16,7 @@ data Item = H5  !LS.ByteString
           | H1  !LS.ByteString
           | Quote  !LS.ByteString
           | Paragraph  !LS.ByteString 
+          | Snippet !LS.ByteString ![LS.ByteString]
           deriving (Eq, Show)
 
 parse :: LS.ByteString -> Maybe Markdown
@@ -25,11 +27,20 @@ parse str = case P.parse parseMarkdown str of
 
 parseItem :: P.Parser Item
 -- ^ The subparser
-parseItem = (parseHeader <|> parseQuote <|> parseParagraph) <* P.many1 (P.char '\n')
+parseItem = (parseHeader <|> parseSnippet <|> parseQuote <|> parseParagraph) <* P.many1 (P.string "\r\n")
   where
+    parseEnd = do
+        _ <- P.try (P.string "```")
+        return []
+    parseLine = parseEnd <|> (((:) . LS.fromStrict) <$> (P.noneOf "\r" <* P.string "\r\n") <*> parseLine)
+    parseSnippet = do
+        open <- LS.fromStrict <$> (P.try (P.string "```" *> P.noneOf1 "\r" <* P.string "\r\n"))
+        res <-  parseLine
+        return $ Snippet open res
+  
     parseHeader = do
         sharps <- P.try (P.many1 (P.char '#')) <* P.spaces
-        rest <- LS.fromStrict <$> P.noneOf1 "\n"
+        rest <- LS.fromStrict <$> P.noneOf1 "\r\n"
         return $ case length sharps of
             1 -> H1 rest
             2 -> H2 rest
@@ -39,10 +50,10 @@ parseItem = (parseHeader <|> parseQuote <|> parseParagraph) <* P.many1 (P.char '
             _ -> error "not implemented"
     parseQuote = do
         _ <- P.try (P.char '>') <* P.spaces
-        rest <- LS.fromStrict <$> P.noneOf1 "\n"
+        rest <- LS.fromStrict <$> P.noneOf1 "\r\n"
         return $ Quote rest
     parseParagraph = do
-        rest <- LS.fromStrict <$> P.noneOf1 "\n"
+        rest <- LS.fromStrict <$> P.noneOf1 "\r\n"
         return $ Paragraph rest
 
 parseMarkdown :: P.Parser Markdown
@@ -64,6 +75,13 @@ toStr (H2 str) = LS.concat ["<h2>", str, "</h2>"]
 toStr (H1 str) = LS.concat ["<h1>", str, "</h1>"]
 toStr (Quote str) = LS.concat ["<blockquote><p>", str, "</p></blockquote>"]
 toStr (Paragraph str) = LS.concat ["<p>", str, "</p>"]
+toStr (Snippet lang strs) = LS.concat ("<table class='code-snippet'>" : (contents 1 strs) ++ ["</table>"])
+  where
+    contents line (str : strs') = LS.concat ["<tr><td class='td-line-num' data-line-num='",
+        (LS.fromStrict $ BS.pack $ show line),
+        "'/><td class='td-content'>",
+        str, "</td></tr>"] : contents (line + 1) strs'
+    contents _ [] = []
 
 convert :: LS.ByteString -> Maybe LS.ByteString
 -- ^ Convert markdown to html
