@@ -9,18 +9,16 @@ services: mongodb
 
 matrix:
   include:
-  - env: CABAL=1.22 GHC=7.10.3 LLVM=3.5
+  - env: CABAL=1.22 GHC=8.0.1 LLVM=3.7
     addons:
       apt:
         sources:
         - hvr-ghc
-        - llvm-toolchain-precise-3.5
+        - llvm-toolchain-precise-3.7
         - ubuntu-toolchain-r-test
         packages:
-        - ghc-7.10.3
-        - llvm-3.5-dev
-        - gcc-4.8
-        - g++-4.8
+        - ghc-8.0.1
+        - llvm-3.7-dev
 
 before_install:
   - mkdir -p $HOME/.local/bin
