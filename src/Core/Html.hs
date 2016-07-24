@@ -100,8 +100,8 @@ parseLine = do
     _ <- P.char '\n'
     return (indent, tag)
   where
-    valueNode = Value <$> BS.unpack <$> (P.anyChar *> P.skipSpace *> P.noneOf "\n")
-    textNode = Text <$> BS.unpack <$> (P.anyChar *> P.skipSpace *> P.noneOf "\n")
+    valueNode = P.anyChar *> P.skipSpace *> (Value <$> BS.unpack <$> P.noneOf "\n")
+    textNode = P.anyChar *> P.skipSpace *> (Text <$> BS.unpack <$> P.noneOf "\n")
     commandNode = do
         c <- P.anyChar *> P.skipSpace *> P.peekChar'
         case c of
@@ -110,20 +110,20 @@ parseLine = do
             'f' -> foreachNode
             c' -> error $ "unexpected char(" ++ [c'] ++ ")"
       where
-        renderNode = Render
-            <$> BS.unpack <$> (P.string "render" *> P.skipSpace *> P.noneOf "\n")
-        ifNode = do
-            stmt <- P.string "if" *> P.skipSpace *>
-                 (map BS.unpack <$>
-                   (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
-            return $ If stmt []
-        foreachNode = Foreach
-            <$> BS.unpack
-            <$> (P.string "foreach" *> P.skipSpace *> P.noneOf " ")
+        renderNode = P.string "render" *> P.skipSpace *> (Render <$> BS.unpack <$> P.noneOf "\n")
+        ifNode = P.string "if" *> P.skipSpace *> (
+            If
+            <$> (map BS.unpack <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
+            <*> return []
+          )
+        foreachNode = P.string "foreach" *> P.skipSpace *> (
+            Foreach
+            <$> BS.unpack <$> P.noneOf " "
             <*> (map BS.unpack <$>
                   (P.string " -> " *>
                     (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
             <*> return []
+          )
     tagNode = Tag
         <$> BS.unpack <$> (P.noneOf " \n")
         <*> (P.try parseArgs <|> return [])
