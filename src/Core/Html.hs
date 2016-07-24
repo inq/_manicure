@@ -100,7 +100,10 @@ parseLine = do
     _ <- P.char '\n'
     return (indent, tag)
   where
-    valueNode = P.anyChar *> P.skipSpace *> (Value <$> BS.unpack <$> P.noneOf "\n")
+    valueNode = do
+        P.anyChar *> P.skipSpace
+        val <- P.noneOf "\n"
+        return $ Value $ BS.unpack val
     textNode = P.anyChar *> P.skipSpace *> (Text <$> BS.unpack <$> P.noneOf "\n")
     commandNode = do
         c <- P.anyChar *> P.skipSpace *> P.peekChar'

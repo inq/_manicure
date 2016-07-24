@@ -9,6 +9,12 @@ import SpecHelper
 spec :: Spec
 spec =
   describe "Core.HtmlSpec" $ do
+    context "UTF-8 Text" $ do
+      it "parses simple utf-8" $
+        [parse|html
+          div
+            | 안녕
+          |] `shouldBe` "<html><div>안녕</div></html>"
     context "Simple Text" $ do
       it "parses simple tag" $
         [parse|html
