@@ -7,20 +7,20 @@ import Core.Html
 import SpecHelper
 
 spec :: Spec
-spec = 
+spec =
   describe "Core.HtmlSpec" $ do
     context "Simple Text" $ do
-      it "parses simple tag" $ 
+      it "parses simple tag" $
         [parse|html
           div
             | Hello
           |] `shouldBe` "<html><div>Hello</div></html>"
-      it "parses simple variable" $ 
+      it "parses simple variable" $
         [parse|html
           div
             = theValue
           |] `shouldBe` "<html><div>VALUE</div></html>"
-      it "parses simple tag" $ 
+      it "parses simple tag" $
         [parse|html
           div
             | Hello
@@ -46,7 +46,7 @@ spec =
             - foreach people -> name, title
               - render variable.qh
           |] `shouldBe` "<html><ul><li><span>A</span><pan>B</pan></li></ul></html>"
-    context "If statement" $ do      
+    context "If statement" $ do
       it "parses true statement" $
         [parse|html
           div
@@ -64,14 +64,14 @@ spec =
       it "applies true function" $
         [parse|html
           div
-            - if graterThan four three
+            - if greaterThan four three
               p
                 | Hello
           |] `shouldBe` "<html><div><p>Hello</p></div></html>"
       it "applies false function" $
         [parse|html
           div
-            - if graterThan three four
+            - if greaterThan three four
               p
                 | Hello
           |] `shouldBe` "<html><div></div></html>"
@@ -80,11 +80,9 @@ spec =
   people = [["A", "B"] :: [BS.ByteString]]
   trueStatement = True
   falseStatement = False
-  graterThan = (>)
-  three = 3 :: Integer 
+  greaterThan = (>) :: Integer -> Integer -> Bool
+  three = 3 :: Integer
   four = 4 :: Integer
-        
-
 
 main :: IO ()
 main = hspec spec
