@@ -12,7 +12,11 @@ import Prelude hiding (takeWhile)
 
 type Parser = AC.Parser
 
+peekChar' :: Parser Char
+peekChar' = AC.peekChar'
 
+skipSpace :: Parser ()
+skipSpace = AC.skipSpace
 
 token :: Char -> Parser W.Word8
 token c = spaces *> char c <* spaces

@@ -31,22 +31,22 @@ instance TS.Lift Html where
     lift (Html nodes) = [| BS.concat nodes |]
 
 instance TS.Lift Node where
-    lift (Tag string attrs nodes) = [| 
-          BS.concat ([$(TS.lift $ "<" ++ string ++ procAttrs attrs ++ ">")] 
+    lift (Tag string attrs nodes) = [|
+          BS.concat ([$(TS.lift $ "<" ++ string ++ procAttrs attrs ++ ">")]
             ++ $(TS.lift nodes)
             ++ [$(TS.lift $ "</" ++ string ++ ">")]
             )
         |]
       where
-        procAttrs (Attr name value : remainders) = 
+        procAttrs (Attr name value : remainders) =
             " " ++ name ++ "=" ++ value ++ procAttrs remainders
         procAttrs (_ : _) = error "procAttrs: Dash is not allowed"
         procAttrs [] = ""
     lift (Foreach vals vs nodes) = [|
-          BS.concat $ 
+          BS.concat $
             map
               (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> BS.concat nodes)
-              $(return $ TS.VarE $ TS.mkName vals) 
+              $(return $ TS.VarE $ TS.mkName vals)
         |]
     lift (Render fileName) = [|
           $(parseFile fileName)
@@ -90,10 +90,40 @@ parse = TQ.QuasiQuoter {
 
 parseLine :: P.Parser (Int, Node)
 parseLine = do
-    nextIndent <- parseIndent
-    tag <- (valueNode <|> textNode <|> mapNode <|> renderNode <|> ifNode <|> tagNode) <* P.char '\n'
-    return (nextIndent, tag)
+    indent <- parseIndent
+    c <- P.peekChar'
+    tag <- case c of
+        '|' -> textNode
+        '=' -> valueNode
+        '-' -> commandNode
+        _ -> tagNode
+    _ <- P.char '\n'
+    return (indent, tag)
   where
+    valueNode = Value <$> BS.unpack <$> (P.anyChar *> P.skipSpace *> P.noneOf "\n")
+    textNode = Text <$> BS.unpack <$> (P.anyChar *> P.skipSpace *> P.noneOf "\n")
+    commandNode = do
+        c <- P.anyChar *> P.skipSpace *> P.peekChar'
+        case c of
+            'r' -> renderNode
+            'i' -> ifNode
+            'f' -> foreachNode
+            c' -> error $ "unexpected char(" ++ [c'] ++ ")"
+      where
+        renderNode = Render
+            <$> BS.unpack <$> (P.string "render" *> P.skipSpace *> P.noneOf "\n")
+        ifNode = do
+            stmt <- P.string "if" *> P.skipSpace *>
+                 (map BS.unpack <$>
+                   (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
+            return $ If stmt []
+        foreachNode = Foreach
+            <$> BS.unpack
+            <$> (P.string "foreach" *> P.skipSpace *> P.noneOf " ")
+            <*> (map BS.unpack <$>
+                  (P.string " -> " *>
+                    (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
+            <*> return []
     tagNode = Tag
         <$> BS.unpack <$> (P.noneOf " \n")
         <*> (P.try parseArgs <|> return [])
@@ -103,21 +133,10 @@ parseLine = do
         parseArg = Attr
             <$> (BS.unpack <$> (P.noneOf " :"))
             <*> (BS.unpack <$> (P.token ':' *> P.noneOf1 ",}"))
-    renderNode = Render
-        <$> (BS.unpack <$> (P.string "- render " *> P.noneOf " \n"))
-    ifNode = If
-        <$> (map BS.unpack <$> (P.string "- if " *> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' ')))
-        <*> return []
-    mapNode = Foreach
-        <$> (BS.unpack <$> (P.string "- foreach " *> P.noneOf " "))
-        <*> (map BS.unpack <$> (P.string " -> " *> (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
-        <*> return []
-    valueNode = Value <$> BS.unpack <$> (P.string "= " *> P.noneOf "\n")
-    textNode = Text <$> BS.unpack <$> (P.string "| " *> P.noneOf "\n")
 
 parseIndent :: P.Parser Int
 parseIndent = fmap sum $ P.many (
-        (P.char ' ' >> return 1) <|> 
+        (P.char ' ' >> return 1) <|>
         (P.char '\t' >> fail "tab charactor is not allowed")
       )
 
@@ -134,7 +153,7 @@ buildTree ((indent, node) : rest)
     replace (Render _) = error "indentation error"
     replace (Text _) = error "indentation error"
     replace (Value _) = error "indentation error"
-buildTree []  = 
+buildTree []  =
     (0, [], [])
 
 parseNode :: P.Parser Html
