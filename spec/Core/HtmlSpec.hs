@@ -3,6 +3,7 @@
 module Core.HtmlSpec where
 
 import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.UTF8             as UTF8
 import Core.Html
 import SpecHelper
 
@@ -14,7 +15,7 @@ spec =
         [parse|html
           div
             | 안녕
-          |] `shouldBe` "<html><div>안녕</div></html>"
+          |] `shouldBe` UTF8.fromString "<html><div>안녕</div></html>"
     context "Simple Text" $ do
       it "parses simple tag" $
         [parse|html

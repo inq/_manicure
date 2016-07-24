@@ -1,6 +1,6 @@
 name:                manicure
 version:             0.1.0.0
-synopsis:            
+synopsis:
 license:             AGPL-3
 license-file:        LICENSE
 author:              inkyu lee
@@ -21,6 +21,7 @@ test-suite spec
                    , hspec
                    , containers
                    , attoparsec
+                   , utf8-string
   other-modules:     Core.ByteStringSpec
                    , Core.JsonSpec
                    , Core.MarkdownSpec
@@ -28,7 +29,7 @@ test-suite spec
                    , Core.HtmlSpec
                    , SpecHelper
   default-language:  Haskell2010
-library 
+library
   ghc-options:       -fllvm -auto-all
   exposed-modules:   Core.Request
                    , Core.Response

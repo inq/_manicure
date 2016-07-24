@@ -84,7 +84,7 @@ parse = TQ.QuasiQuoter {
     }
   where
     quoteExp str = do
-        case P.parseOnly parseNode (BS.pack str) of
+        case P.parseOnly parseNode (UTF8.fromString str) of
             Right tag -> [| tag |]
             Left _    -> undefined
 
@@ -103,8 +103,8 @@ parseLine = do
     valueNode = do
         P.anyChar *> P.skipSpace
         val <- P.noneOf "\n"
-        return $ Value $ BS.unpack val
-    textNode = P.anyChar *> P.skipSpace *> (Text <$> BS.unpack <$> P.noneOf "\n")
+        return $ Value $ UTF8.toString val
+    textNode = P.anyChar *> P.skipSpace *> (Text <$> UTF8.toString <$> P.noneOf "\n")
     commandNode = do
         c <- P.anyChar *> P.skipSpace *> P.peekChar'
         case c of
@@ -113,29 +113,29 @@ parseLine = do
             'f' -> foreachNode
             c' -> error $ "unexpected char(" ++ [c'] ++ ")"
       where
-        renderNode = P.string "render" *> P.skipSpace *> (Render <$> BS.unpack <$> P.noneOf "\n")
+        renderNode = P.string "render" *> P.skipSpace *> (Render <$> UTF8.toString <$> P.noneOf "\n")
         ifNode = P.string "if" *> P.skipSpace *> (
             If
-            <$> (map BS.unpack <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
+            <$> (map UTF8.toString <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
             <*> return []
           )
         foreachNode = P.string "foreach" *> P.skipSpace *> (
             Foreach
-            <$> BS.unpack <$> P.noneOf " "
-            <*> (map BS.unpack <$>
+            <$> UTF8.toString <$> P.noneOf " "
+            <*> (map UTF8.toString <$>
                   (P.string " -> " *>
                     (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
             <*> return []
           )
     tagNode = Tag
-        <$> BS.unpack <$> (P.noneOf " \n")
+        <$> UTF8.toString <$> (P.noneOf " \n")
         <*> (P.try parseArgs <|> return [])
         <*> return []
       where
         parseArgs = P.token '{' *> (P.sepBy parseArg $ P.token ',') <* P.char '}'
         parseArg = Attr
-            <$> (BS.unpack <$> (P.noneOf " :"))
-            <*> (BS.unpack <$> (P.token ':' *> P.noneOf1 ",}"))
+            <$> (UTF8.toString <$> (P.noneOf " :"))
+            <*> (UTF8.toString <$> (P.token ':' *> P.noneOf1 ",}"))
 
 parseIndent :: P.Parser Int
 parseIndent = fmap sum $ P.many (
