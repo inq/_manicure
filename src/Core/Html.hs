@@ -1,73 +1,89 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE EmptyCase         #-}
 {-# LANGUAGE FlexibleContexts  #-}
-module Core.Html where
+module Core.Html
+  ( parse
+  , parseFile
+  ) where
 
 import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Language.Haskell.TH.Syntax       as TS
-import qualified Core.ByteString                  as ByteString
 import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
+import Core.Html.Token (Token(..))
 import Control.Applicative ((<|>))
 
-data Attr = Dash !String ![Attr]
-          | Attr !String !String
-          deriving Show
-data Node = Tag !String ![Attr] ![Node]
-          | Text !String
-          | Value !String
-          | Foreach !String ![String] ![Node]
-          | Render !String
-          | If ![String] ![Node]
-          deriving Show
-data Html = Html ![Node]
-data Status = Child | Sibling | Parent
-          deriving Show
+-- * Data types
+data Attr
+  = Dash !String ![Attr]
+  | Attr !String !Token
+  deriving Show
+data Node
+  = Tag !String ![Attr] ![Node]
+  | Text !Token
+  | Foreach !String ![String] ![Node]
+  | Render !String
+  | If ![String] ![Node]
+  deriving Show
+data Html
+  = Html ![Node]
+data Status
+  = Child | Sibling | Parent
+  deriving Show
 
+-- * Instances
 instance TS.Lift Html where
     lift (Html nodes) = [| BS.concat nodes |]
 
+instance TS.Lift Attr where
+    lift (Attr name value) =
+     [| BS.concat
+          [ " "
+          , name
+          , "="
+          , $(TS.lift value)
+          ]
+      |]
+    lift _ = error "procAttrs: Dash is not allowed"
+
 instance TS.Lift Node where
-    lift (Tag string attrs nodes) = [|
-          BS.concat ([$(TS.lift $ "<" ++ string ++ procAttrs attrs ++ ">")]
-            ++ $(TS.lift nodes)
-            ++ [$(TS.lift $ "</" ++ string ++ ">")]
-            )
-        |]
+    lift (Tag string attrs nodes) =
+     [| BS.concat $
+          [ "<", $(TS.lift string)]
+          ++ $(TS.lift attrs)
+          ++ [">"]
+          ++ $(TS.lift nodes)
+          ++ ["</", string, ">"]
+      |]
       where
-        procAttrs (Attr name value : remainders) =
-            " " ++ name ++ "=" ++ value ++ procAttrs remainders
-        procAttrs (_ : _) = error "procAttrs: Dash is not allowed"
-        procAttrs [] = ""
-    lift (Foreach vals vs nodes) = [|
-          BS.concat $
-            map
-              (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> BS.concat nodes)
-              $(return $ TS.VarE $ TS.mkName vals)
-        |]
-    lift (Render fileName) = [|
-          $(parseFile fileName)
-        |]
-    lift (If attrs nodes) = [|
-          case $(return $
-                  (foldl (\a b -> TS.AppE a b)
-                    ((TS.VarE . TS.mkName . head) attrs)
-                    (map (TS.VarE . TS.mkName) (tail attrs)))) of
-            True -> BS.concat nodes
-            _ -> ""
-        |]
-    lift (Text a) = [| UTF8.fromString a |]
-    lift (Value a) = [| ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
+    lift (Foreach vals vs nodes) =
+     [| BS.concat $ map
+          (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> BS.concat nodes)
+          $(return $ TS.VarE $ TS.mkName vals)
+     |]
+    lift (Render fileName) =
+     [| $(parseFile fileName) |]
+    lift (If attrs nodes) =
+     [| case $(return $
+                (foldl (\a b -> TS.AppE a b)
+                ((TS.VarE . TS.mkName . head) attrs)
+                (map (TS.VarE . TS.mkName) (tail attrs)))) of
+          True -> BS.concat nodes
+          _ -> ""
+      |]
+    lift (Text a) = [| a |]
 
 instance TS.Lift Status where
     lift Child   = [| Child |]
     lift Sibling = [| Sibling |]
     lift Parent  = [| Parent |]
 
+-- * TH
+
 parseFile :: FilePath -> TS.Q TS.Exp
+-- ^ Parse the given file.
 parseFile filePath = do
     TS.qAddDependentFile path
     s <- TS.qRunIO $ readFile path
@@ -76,6 +92,7 @@ parseFile filePath = do
     path = "views/" ++ filePath
 
 parse :: TQ.QuasiQuoter
+-- ^ The main parser
 parse = TQ.QuasiQuoter {
         TQ.quoteExp = quoteExp,
         TQ.quotePat = undefined,
@@ -87,10 +104,17 @@ parse = TQ.QuasiQuoter {
         case P.parseOnly parseNode (UTF8.fromString str) of
             Right tag -> [| tag |]
             Left _    -> undefined
+    parseNode = do
+        (_, res, _) <- buildTree <$> P.many parseLine
+        return (Html res)
+
+
+-- * Node
 
 parseLine :: P.Parser (Int, Node)
+-- ^ Parsing a line, get indent level & node information.
 parseLine = do
-    indent <- parseIndent
+    i <- indents
     c <- P.peekChar'
     tag <- case c of
         '|' -> textNode
@@ -98,13 +122,17 @@ parseLine = do
         '-' -> commandNode
         _ -> tagNode
     _ <- P.char '\n'
-    return (indent, tag)
+    return (i, tag)
   where
+    indents = sum <$> P.many (
+        (P.char ' ' >> return 1) <|>
+        (P.char '\t' >> fail "tab charactor is not allowed")
+      )
     valueNode = do
         P.anyChar *> P.skipSpace
         val <- P.noneOf "\n"
-        return $ Value $ UTF8.toString val
-    textNode = P.anyChar *> P.skipSpace *> (Text <$> UTF8.toString <$> P.noneOf "\n")
+        return $ (Text . TVal) $ UTF8.toString val
+    textNode = P.anyChar *> P.skipSpace *> ((Text . TStr) <$> UTF8.toString <$> P.noneOf "\n")
     commandNode = do
         c <- P.anyChar *> P.skipSpace *> P.peekChar'
         case c of
@@ -135,15 +163,10 @@ parseLine = do
         parseArgs = P.token '{' *> (P.sepBy parseArg $ P.token ',') <* P.char '}'
         parseArg = Attr
             <$> (UTF8.toString <$> (P.noneOf " :"))
-            <*> (UTF8.toString <$> (P.token ':' *> P.noneOf1 ",}"))
-
-parseIndent :: P.Parser Int
-parseIndent = fmap sum $ P.many (
-        (P.char ' ' >> return 1) <|>
-        (P.char '\t' >> fail "tab charactor is not allowed")
-      )
+            <*> (TStr . UTF8.toString <$> (P.token ':' *> P.noneOf1 ",}"))
 
 buildTree :: [(Int, Node)] -> (Int, [Node], [(Int, Node)])
+-- ^ Using the indent size and node information, build the Node tree.
 buildTree ((indent, node) : rest)
     | indent < next = buildTree $ (indent, replace node res) : remaining
     | indent > next = (indent, [node], rest)
@@ -155,13 +178,5 @@ buildTree ((indent, node) : rest)
     replace (If args _) = If args
     replace (Render _) = error "indentation error"
     replace (Text _) = error "indentation error"
-    replace (Value _) = error "indentation error"
 buildTree []  =
     (0, [], [])
-
-parseNode :: P.Parser Html
--- ^ The main parser
-parseNode = do
-    nodes <- P.many parseLine
-    let (_, res, _) = buildTree nodes
-    return (Html res)
