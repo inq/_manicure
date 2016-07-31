@@ -45,6 +45,7 @@ library
                    , Core.Model
                    , Core.Launcher
   other-modules:     Core.Html.Token
+                   , Core.Html.Node
   build-depends:     base
                    , network
                    , directory
