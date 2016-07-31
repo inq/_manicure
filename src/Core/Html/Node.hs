@@ -42,7 +42,7 @@ parseToken = do
     res <- case c of
       '\'' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\'" <* P.char '\'')
       '\"' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\"" <* P.char '\"')
-      _ -> (TStr . UTF8.toString <$> (P.noneOf1 ",} "))
+      _ -> (TVal . UTF8.toString <$> (P.noneOf1 ",} "))
     P.skipSpace
     return res
 

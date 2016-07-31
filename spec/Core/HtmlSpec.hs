@@ -16,6 +16,11 @@ spec =
           div { class: 'hello', id: "hihi" }
             | hi
           |] `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
+      it "parses values" $
+        [parse|html
+          div { class: theValue }
+            | ha
+          |] `shouldBe` UTF8.fromString "<html><div class=\"VALUE\">ha</div></html>"
     context "UTF-8 Text" $ do
       it "parses simple utf-8" $
         [parse|html
