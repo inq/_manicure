@@ -1,5 +1,5 @@
+{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 module Core.HtmlSpec where
 
 import qualified Data.ByteString.Char8            as BS
@@ -10,6 +10,12 @@ import SpecHelper
 spec :: Spec
 spec =
   describe "Core.HtmlSpec" $ do
+    context "Token parser" $ do
+      it "parses simple string" $
+        [parse|html
+          div { class: 'hello', id: "hihi" }
+            | hi
+          |] `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
     context "UTF-8 Text" $ do
       it "parses simple utf-8" $
         [parse|html
@@ -46,7 +52,7 @@ spec =
         [parse|html
           p
             - render simple.qh
-          |] `shouldBe` "<html><p><div>Hello</div><span class=\"hihi\" >ho?</span></p></html>"
+          |] `shouldBe` "<html><p><div>Hello</div><span class=\"hihi\">ho?</span></p></html>"
       it "parses simple variable" $
         [parse|html
           ul

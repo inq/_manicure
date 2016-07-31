@@ -46,6 +46,9 @@ manyTill = AC.manyTill
 takeTill :: (W.Word8 -> Bool) -> Parser BS.ByteString
 takeTill = AL.takeTill
 
+takeTill' :: (Char -> Bool) -> Parser BS.ByteString
+takeTill' = AC.takeTill
+
 takeWhile :: (W.Word8 -> Bool) -> Parser BS.ByteString
 takeWhile = AL.takeWhile
 
@@ -81,6 +84,9 @@ try = AC.try
 
 sepBy :: Alternative f => f a -> f s -> f [a]
 sepBy = AC.sepBy
+
+sepBy' :: MonadPlus m => m a -> m s -> m [a]
+sepBy' = AC.sepBy'
 
 string :: BS.ByteString -> Parser BS.ByteString
 string = AC.string

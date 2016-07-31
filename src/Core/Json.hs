@@ -26,7 +26,7 @@ class ToJson a where
 -- ^ JSON transformation
     toJson :: a -> Json
 instance ToJson TC.UTCTime where
-    toJson = JSString . BS.pack . show 
+    toJson = JSString . BS.pack . show
 instance ToJson ObjectId where
     toJson = JSObjectId . BS.pack . show
 instance ToJson Integer where
@@ -55,7 +55,7 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
             ('"',  '"'),
             ('\\', '\\'),
             ('/',  '/'),
-            ('n',  '\n'), 
+            ('n',  '\n'),
             ('r',  '\r'),
             ('f',  '\f'),
             ('t',  '\t'),
@@ -70,20 +70,20 @@ parseJson = parseObject <|> parseArray <|> parseString <|> parseBoolean <|> pars
             case M.lookup c escapeMap of
                 Just ch -> return ch
                 Nothing -> if c == 'u'
-                    then do 
+                    then do
                         code <- P.count 4 (P.satisfy isHexDigit)
                         if null code
                              then fail "broken unicode"
                              else return $ chr $ read $ "0x" ++ code
                     else fail "broken escape character"
-        
+
     spaces = P.skipWhile P.isHorizontalSpace
     parseArray = JSArray <$> (op '[' *> P.sepBy (spaces *> parseJson <* spaces) (P.char ',') <* cl ']')
     parseObject = (JSObject . M.fromList) <$> (op '{' *> P.sepBy pair (P.char ',') <* cl '}')
       where
         pair = do
             key <- spaces *> parseString <* spaces <* P.char ':'
-            value <- spaces *> parseJson <* spaces 
+            value <- spaces *> parseJson <* spaces
             return (rawString key, value)
         rawString (JSString x) = x
         rawString _ = error "rawString: must receive JSString"

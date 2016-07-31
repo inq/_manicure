@@ -29,10 +29,22 @@ data Attr
 -- * Instances
 instance TS.Lift Attr where
     lift (Attr name value) =
-     [| BS.concat [ " ", name, "=", $(TS.lift value) ]|]
+     [| BS.concat [ " ", name, "=\"", $(TS.lift value), "\"" ]|]
     lift _ = error "procAttrs: Dash is not allowed"
 
 -- * Parser
+
+parseToken :: P.Parser Token
+-- ^ Parse the token.
+parseToken = do
+    P.skipSpace *> P.char ':' *> P.skipSpace
+    c <- P.skipSpace *> P.peekChar'
+    res <- case c of
+      '\'' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\'" <* P.char '\'')
+      '\"' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\"" <* P.char '\"')
+      _ -> (TStr . UTF8.toString <$> (P.noneOf1 ",} "))
+    P.skipSpace
+    return res
 
 parseTag :: P.Parser Node
 -- ^ Parse the tag.
@@ -41,10 +53,10 @@ parseTag = Tag
     <*> (P.try parseArgs <|> return [])
     <*> return []
   where
-    parseArgs = P.token '{' *> (P.sepBy parseArg $ P.token ',') <* P.char '}'
+    parseArgs = P.token '{' *> (P.sepBy parseArg $ P.char ',') <* P.char '}'
     parseArg = Attr
-        <$> (UTF8.toString <$> (P.noneOf " :"))
-        <*> (TStr . UTF8.toString <$> (P.token ':' *> P.noneOf1 ",}"))
+        <$> (UTF8.toString <$> (P.skipSpace *> P.noneOf " :"))
+        <*> parseToken
 
 parseCommand :: P.Parser Node
 -- ^ Parse commands: render, if, foreach.

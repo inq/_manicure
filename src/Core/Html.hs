@@ -13,8 +13,6 @@ import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
 import Core.Html.Node (Node(..), parseLine)
-import Core.Html.Token (Token(..))
-import Control.Applicative ((<|>))
 
 -- * Data types
 data Html
@@ -69,8 +67,14 @@ parseFile filePath = do
   where
     path = "views/" ++ filePath
 
-parse :: TQ.QuasiQuoter
+parseNode :: P.Parser Html
 -- ^ The main parser
+parseNode = do
+    (_, res, _) <- buildTree <$> P.many parseLine
+    return (Html res)
+
+parse :: TQ.QuasiQuoter
+-- ^ Parser for QuasiQUoter
 parse = TQ.QuasiQuoter {
         TQ.quoteExp = quoteExp,
         TQ.quotePat = undefined,
@@ -82,9 +86,6 @@ parse = TQ.QuasiQuoter {
         case P.parseOnly parseNode (UTF8.fromString str) of
             Right tag -> [| tag |]
             Left _    -> undefined
-    parseNode = do
-        (_, res, _) <- buildTree <$> P.many parseLine
-        return (Html res)
 
 -- * Node
 
