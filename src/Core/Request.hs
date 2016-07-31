@@ -7,7 +7,7 @@ import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy.Char8       as LS
 import qualified Core.Http                        as Http
-import qualified Network.Socket.ByteString        as NSB 
+import qualified Network.Socket.ByteString        as NSB
 import qualified Network.Socket                   as NS
 import qualified Data.Char                        as C
 import qualified Data.Map                         as M
@@ -52,12 +52,12 @@ receiveHeader :: NS.Socket -> IO Lines
 receiveHeader fd = do
     buf <- NSB.recv fd 4096
     when (BS.length buf == 0) $ error "Disconnected"
-    receiveHeader' [] buf 
+    receiveHeader' [] buf
   where
     receiveHeader' res buffer = do
         let (line, remaining) = BS.breakSubstring "\r\n" buffer
         let remaining' = BS.drop 2 remaining
-        if BS.length line == 0 
+        if BS.length line == 0
             then return (res, remaining')
             else if BS.length remaining' == 0
                 then do
@@ -69,7 +69,7 @@ receiveHeader fd = do
 
 extractCookie :: Request -> M.Map BS.ByteString BS.ByteString
 -- ^ Extract cookie from the request header
-extractCookie req = 
+extractCookie req =
     findCookie $ headers req
   where
     findCookie (("Cookie", context) : _) = ByteString.splitAndDecode ';' context
@@ -79,7 +79,7 @@ extractCookie req =
 parse :: LS.ByteString -> NS.Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
 parse ipt = parseHead _head res post'
-  where 
+  where
     post' = ByteString.splitAndDecode '&' $ LS.toStrict content
     content = LS.take contentLength pdata
     contentLength = case M.lookup "Content-Length" $ M.fromList res of
@@ -96,7 +96,7 @@ parse ipt = parseHead _head res post'
     header = (,)
         <$> (P.takeWhile P.isToken <* P.char ':' <* P.skipWhile P.isHorizontalSpace)
         <*> (P.takeTill P.isEndOfLine <* P.endOfLine)
-    
+
 splitLines :: BS.ByteString -> [BS.ByteString]
 -- ^ Split the lines from the HTTP header
 splitLines str =
@@ -105,7 +105,7 @@ splitLines str =
         Just _         -> [BS.drop 2 str]
         Nothing        -> [""]
 
-        
+
 parseHead :: BS.ByteString -> RequestHeaders -> ByteString.QueryString -> NS.Socket -> Request
 -- ^ Parse the first line of the HTTP header
 parseHead str _headers query =
@@ -138,6 +138,6 @@ parseHead str _headers query =
                     | BS.head queryStringRaw == '?' = BS.tail queryStringRaw
                     | otherwise                     = ""
     queryString = ByteString.splitAndDecode '&' queryStringTail
-    _version = Http.Version 
-        (C.digitToInt $ BS.index str (_length - 3)) 
+    _version = Http.Version
+        (C.digitToInt $ BS.index str (_length - 3))
         (C.digitToInt $ BS.index str (_length - 1))

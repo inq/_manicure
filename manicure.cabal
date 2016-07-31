@@ -22,6 +22,7 @@ test-suite spec
                    , containers
                    , attoparsec
                    , utf8-string
+                   , template-haskell
   other-modules:     Core.ByteStringSpec
                    , Core.JsonSpec
                    , Core.MarkdownSpec
@@ -44,6 +45,8 @@ library
                    , Core.Markdown
                    , Core.Model
                    , Core.Launcher
+  other-modules:     Core.Html.Token
+                   , Core.Html.Node
   build-depends:     base
                    , network
                    , directory
