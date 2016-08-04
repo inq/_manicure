@@ -3,7 +3,7 @@ module Core.Launcher where
 
 import qualified Network                        as N
 import qualified Network.Socket                 as NS
-import qualified Network.Socket.ByteString      as NSB 
+import qualified Network.Socket.ByteString      as NSB
 import qualified Network.Socket.ByteString.Lazy as NSL
 import qualified Data.ByteString.Char8          as BS
 import qualified Data.ByteString.Lazy           as LS
@@ -78,7 +78,7 @@ acceptSocket routeTree response404 socketFd db = do
     _ <- CC.forkIO $ acceptBody routeTree response404 fd db
     acceptSocket routeTree response404 socketFd db
 
-acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
+acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO ()
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
     req' <- NSL.getContents fd

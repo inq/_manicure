@@ -9,6 +9,7 @@ import qualified Core.Database                  as DB
 
 type Handler = [BS.ByteString] -> Action
 type Action = DB.Connection -> Req.Request -> IO Response
+type Component = [BS.ByteString] -> DB.Connection -> Req.Request -> IO BS.ByteString
 
 data Response = Response {
   version :: {-# UNPACK #-} !Http.Version,
@@ -42,7 +43,7 @@ render r@(Response _ 404 _ _) =
 render (Response _ 303 _cookies url) =
     BS.concat $
       [ "HTTP/1.0 303 See Other\r\n" ] ++
-      cookieToString _cookies ++ 
+      cookieToString _cookies ++
       [ "Location: ", url, "\r\n\r\n"]
 
 render r@(Response _ _ _ _) =
