@@ -11,88 +11,86 @@ spec :: Spec
 spec =
   describe "Core.HtmlSpec" $ do
     context "Token parser" $ do
-      it "parses simple string" $
-        [parse|html
+      it "parses simple string" $ do
+        res <- [parse|html
           div { class: 'hello', id: "hihi" }
             | hi
-          |] `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
-      it "parses values" $
-        [parse|html
+         |]
+        BS.concat res `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
+      it "parses values" $ do
+        res <- [parse|html
           div { class: theValue }
             | ha
-          |] `shouldBe` UTF8.fromString "<html><div class=\"VALUE\">ha</div></html>"
+         |]
+        BS.concat res `shouldBe` UTF8.fromString "<html><div class=\"VALUE\">ha</div></html>"
     context "UTF-8 Text" $ do
-      it "parses simple utf-8" $
-        [parse|html
+      it "parses simple utf-8" $ do
+        res <- [parse|html
           div
             | 안녕
-          |] `shouldBe` UTF8.fromString "<html><div>안녕</div></html>"
+         |]
+        BS.concat res `shouldBe` UTF8.fromString "<html><div>안녕</div></html>"
     context "Simple Text" $ do
-      it "parses simple tag" $
-        [parse|html
+      it "parses simple tag" $ do
+        res <- [parse|html
           div
             | Hello
-          |] `shouldBe` "<html><div>Hello</div></html>"
-      it "parses simple variable" $
-        [parse|html
+         |]
+        BS.concat res `shouldBe` "<html><div>Hello</div></html>"
+      it "parses simple variable" $ do
+        res <- [parse|html
           div
             = theValue
-          |] `shouldBe` "<html><div>VALUE</div></html>"
-      it "parses simple tag" $
-        [parse|html
+         |]
+        BS.concat res `shouldBe` "<html><div>VALUE</div></html>"
+      it "parses simple tag" $ do
+        res <- [parse|html
           div
             | Hello
-          |] `shouldBe` "<html><div>Hello</div></html>"
-      it "processes simple foreach statement" $
-        [parse|html
-          - foreach people -> name, title
-            div
-              p
-                = name
-              p
-                = title
-          |] `shouldBe` "<html><div><p>A</p><p>B</p></div></html>"
-    context "External File" $ do
-      it "parses simple partial" $
-        [parse|html
-          p
-            - render simple.qh
-          |] `shouldBe` "<html><p><div>Hello</div><span class=\"hihi\">ho?</span></p></html>"
-      it "parses simple variable" $
-        [parse|html
-          ul
-            - foreach people -> name, title
-              - render variable.qh
-          |] `shouldBe` "<html><ul><li><span>A</span><pan>B</pan></li></ul></html>"
+         |]
+        BS.concat res `shouldBe` "<html><div>Hello</div></html>"
+      it "processes simple foreach statement" $ do
+        res <- [parse|- foreach people -> name, title
+          div
+            p
+              = name
+            p
+              = title
+         |]
+        BS.concat res `shouldBe` "<div><p>A</p><p>B</p></div>"
     context "If statement" $ do
-      it "parses true statement" $
-        [parse|html
+      it "parses true statement" $ do
+        res <- [parse|html
           div
             - if trueStatement
               p
                 | Hello
-          |] `shouldBe` "<html><div><p>Hello</p></div></html>"
-      it "parses false statement" $
-        [parse|html
+         |]
+        BS.concat res `shouldBe` "<html><div><p>Hello</p></div></html>"
+      it "parses false statement" $ do
+        res <- [parse|html
           div
             - if falseStatement
               p
                 | Hello
-          |] `shouldBe` "<html><div></div></html>"
-      it "applies true function" $
-        [parse|html
+         |]
+        BS.concat res `shouldBe` "<html><div></div></html>"
+      it "applies true function" $ do
+        res <- [parse|html
           div
             - if greaterThan four three
               p
                 | Hello
-          |] `shouldBe` "<html><div><p>Hello</p></div></html>"
-      it "applies false function" $
-        [parse|html
+         |]
+        BS.concat res `shouldBe` "<html><div><p>Hello</p></div></html>"
+      it "applies false function" $ do
+        res <- [parse|html
           div
             - if greaterThan three four
               p
                 | Hello
-          |] `shouldBe` "<html><div></div></html>"
+          |]
+        BS.concat res `shouldBe` "<html><div></div></html>"
  where
   theValue = "VALUE" :: BS.ByteString
   people = [["A", "B"] :: [BS.ByteString]]

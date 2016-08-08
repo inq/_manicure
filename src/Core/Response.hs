@@ -9,14 +9,14 @@ import qualified Core.Database                  as DB
 
 type Handler = [BS.ByteString] -> Action
 type Action = DB.Connection -> Req.Request -> IO Response
-type Component = [BS.ByteString] -> DB.Connection -> Req.Request -> IO BS.ByteString
+type Component = [BS.ByteString] -> DB.Connection -> Req.Request -> IO [BS.ByteString]
 
-data Response = Response {
-  version :: {-# UNPACK #-} !Http.Version,
-  statusCode :: {-# UNPACK #-} !Int,
-  cookies :: [BS.ByteString],
-  content :: {-# UNPACK #-} !BS.ByteString
-} deriving Show
+data Response = Response
+  { version :: {-# UNPACK #-} !Http.Version
+  , statusCode :: {-# UNPACK #-} !Int
+  , cookies :: [BS.ByteString]
+  , content :: {-# UNPACK #-} !BS.ByteString
+  } deriving Show
 
 instance Show (BS.ByteString -> Handler) where
     show _ = ""

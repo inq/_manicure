@@ -23,20 +23,19 @@ data Status
 
 -- * Instances
 instance TS.Lift Html where
-    lift (Html nodes) = [| BS.concat nodes |]
+    lift (Html nodes) = [| return $ concat nodes |]
 
 instance TS.Lift Node where
     lift (Tag string attrs nodes) =
-     [| BS.concat $
-          [ "<", $(TS.lift string)]
-          ++ $(TS.lift attrs)
-          ++ [">"]
-          ++ $(TS.lift nodes)
-          ++ ["</", string, ">"]
+     [|  [($(TS.lift $ concat ["<", string]) :: BS.ByteString)]
+         ++ $(TS.lift attrs)
+         ++ [">"]
+         ++ concat $(TS.lift $ nodes)
+         ++ [$(TS.lift $ concat ["</", string, ">"])]
       |]
     lift (Foreach vals vs nodes) =
-     [| BS.concat $ map
-          (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> BS.concat nodes)
+     [| concat $ concatMap
+          (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> $(TS.lift nodes))
           $(return $ TS.VarE $ TS.mkName vals)
      |]
     lift (Render fileName) =
@@ -46,10 +45,10 @@ instance TS.Lift Node where
                 (foldl (\a b -> TS.AppE a b)
                 ((TS.VarE . TS.mkName . head) attrs)
                 (map (TS.VarE . TS.mkName) (tail attrs)))) of
-          True -> BS.concat nodes
-          _ -> ""
+          True -> concat nodes
+          _ -> [] :: [BS.ByteString]
       |]
-    lift (Text a) = [| a |]
+    lift (Text a) = [| [a] |]
 
 instance TS.Lift Status where
     lift Child   = [| Child |]
