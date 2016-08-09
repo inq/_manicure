@@ -34,7 +34,7 @@ redisHashGet (Connection r _ _) key = do
     (Right res) <- R.runRedis r $ R.hgetall key
     return res
 
-redisGet :: Connection -> BS.ByteString -> IO BS.ByteString 
+redisGet :: Connection -> BS.ByteString -> IO BS.ByteString
 -- ^ Read a bytestring from redis
 redisGet (Connection r _ _) key = do
     (Right (Just res)) <- R.runRedis r $ R.get key
@@ -46,15 +46,14 @@ runRedis (Connection r _ _) = R.runRedis r
 
 query :: MonadIO m => Connection -> M.Action m a -> m a
 -- ^ Send the given query
-query (Connection _ pipe db) = 
+query (Connection _ pipe db) =
     M.access pipe M.master db
 
 close :: M.Pipe -> IO ()
 -- ^ Close the connection
-close = M.close 
+close = M.close
 
 find :: (MonadIO m, MonadBaseControl IO m)  => M.Action m [M.Document]
 -- ^ ** Find articles
-find = 
+find =
     (M.find $ M.select [] "users") >>= M.rest
-

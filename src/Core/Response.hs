@@ -4,25 +4,18 @@ module Core.Response where
 
 import qualified Data.ByteString.Char8          as BS
 import qualified Core.Http                      as Http
-import qualified Core.Request                   as Req
-import qualified Core.Database                  as DB
 
-type Handler = [BS.ByteString] -> Action
-type Action = DB.Connection -> Req.Request -> IO Response
+-- * Data types
 
-data Response = Response {
-  version :: {-# UNPACK #-} !Http.Version,
-  statusCode :: {-# UNPACK #-} !Int,
-  cookies :: [BS.ByteString],
-  content :: {-# UNPACK #-} !BS.ByteString
-} deriving Show
-
-instance Show (BS.ByteString -> Handler) where
-    show _ = ""
-instance Show Handler where
-    show _ = ""
+data Response = Response
+  { version :: {-# UNPACK #-} !Http.Version
+  , statusCode :: {-# UNPACK #-} !Int
+  , cookies :: [BS.ByteString]
+  , content :: {-# UNPACK #-} !BS.ByteString
+  } deriving Show
 
 cookieToString :: [BS.ByteString] -> [BS.ByteString]
+-- ^ Convert cookies to string
 cookieToString = map (\x -> BS.concat ["Set-Cookie: ", x, "; path=/\r\n"])
 
 renderContent :: Response -> [BS.ByteString]
@@ -42,9 +35,8 @@ render r@(Response _ 404 _ _) =
 render (Response _ 303 _cookies url) =
     BS.concat $
       [ "HTTP/1.0 303 See Other\r\n" ] ++
-      cookieToString _cookies ++ 
+      cookieToString _cookies ++
       [ "Location: ", url, "\r\n\r\n"]
-
 render r@(Response _ _ _ _) =
     BS.concat ("HTTP/1.0 500 Internal Error\r\n" : renderContent r)
 

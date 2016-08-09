@@ -17,7 +17,6 @@ data Node
   = Tag !String ![Attr] ![Node]
   | Text !Token
   | Foreach !String ![String] ![Node]
-  | Render !String
   | If ![String] ![Node]
   deriving Show
 
@@ -31,6 +30,29 @@ instance TS.Lift Attr where
     lift (Attr name value) =
      [| BS.concat [ " ", name, "=\"", $(TS.lift value), "\"" ]|]
     lift _ = error "procAttrs: Dash is not allowed"
+
+instance TS.Lift Node where
+    lift (Tag string attrs nodes) =
+     [|  [($(TS.lift $ concat ["<", string]) :: BS.ByteString)]
+         ++ $(TS.lift attrs)
+         ++ [">"]
+         ++ concat $(TS.lift $ nodes)
+         ++ [$(TS.lift $ concat ["</", string, ">"])]
+      |]
+    lift (Foreach vals vs nodes) =
+     [| concat $ concatMap
+          (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> $(TS.lift nodes))
+          $(return $ TS.VarE $ TS.mkName vals)
+     |]
+    lift (If attrs nodes) =
+     [| case $(return $
+                (foldl (\a b -> TS.AppE a b)
+                ((TS.VarE . TS.mkName . head) attrs)
+                (map (TS.VarE . TS.mkName) (tail attrs)))) of
+          True -> concat nodes
+          _ -> [] :: [BS.ByteString]
+      |]
+    lift (Text a) = [| [a] |]
 
 -- * Parser
 
@@ -63,12 +85,10 @@ parseCommand :: P.Parser Node
 parseCommand = do
     c <- P.anyChar *> P.skipSpace *> P.peekChar'
     case c of
-        'r' -> renderNode
         'i' -> ifNode
         'f' -> foreachNode
         c' -> error $ "unexpected char(" ++ [c'] ++ ")"
   where
-    renderNode = P.string "render" *> P.skipSpace *> (Render <$> UTF8.toString <$> P.noneOf "\n")
     ifNode = P.string "if" *> P.skipSpace *> (
         If
         <$> (map UTF8.toString <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))

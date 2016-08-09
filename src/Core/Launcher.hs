@@ -3,10 +3,9 @@ module Core.Launcher where
 
 import qualified Network                        as N
 import qualified Network.Socket                 as NS
-import qualified Network.Socket.ByteString      as NSB 
+import qualified Network.Socket.ByteString      as NSB
 import qualified Network.Socket.ByteString.Lazy as NSL
 import qualified Data.ByteString.Char8          as BS
-import qualified Data.ByteString.Lazy           as LS
 import qualified Core.Database                  as DB
 import qualified Control.Concurrent             as CC
 import qualified System.Posix.Process           as P
@@ -17,11 +16,8 @@ import qualified System.Directory               as D
 import qualified Core.Route                     as Route
 import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
+import qualified Core.Component                 as Com
 import qualified Control.Monad                  as M
-import qualified Data.List                      as L
-import qualified Data.ByteString.Lazy.Internal  as LSI
-import System.IO.Unsafe (unsafeInterleaveIO)
-
 
 daemonize :: String -> String -> String -> IO () -> IO ()
 -- ^ Daemonize the given function
@@ -78,20 +74,20 @@ acceptSocket routeTree response404 socketFd db = do
     _ <- CC.forkIO $ acceptBody routeTree response404 fd db
     acceptSocket routeTree response404 socketFd db
 
-acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO () 
+acceptBody :: Route.RouteTree -> BS.ByteString -> NS.Socket -> DB.Connection -> IO ()
 -- ^ Process the connection
 acceptBody routeTree response404 fd db = do
     req' <- NSL.getContents fd
     let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request
-    response <- case Route.match uri method routeTree of
-                    Just handler -> do
-                        putStrLn "handler"
-                        handler db request
-                    Nothing -> do
-                        putStrLn "nothing"
-                        return $ Res.error 404 response404
+    (response, state) <- case Route.match uri method routeTree of
+        Just (handler, params) -> do
+            putStrLn "handler"
+            Com.runHandler handler params db request
+        Nothing -> do
+            putStrLn "nothing"
+            return $ (Res.error 404 response404, Com.ResState db [] request)
     print response
     NSB.sendAll fd $ Res.render response
     NS.sClose fd
