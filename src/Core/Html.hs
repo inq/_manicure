@@ -11,7 +11,7 @@ import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
 import Core.Html.Node (Node(..), parseLine)
-import Core.Html.Meta (MetaNode(..), convert)
+import Core.Html.Meta (MetaNode(..), optimize, convert)
 
 -- * TH
 
@@ -19,7 +19,7 @@ parseNode :: P.Parser [MetaNode]
 -- ^ The main parser
 parseNode = do
     (_, res, _) <- buildTree <$> P.many parseLine
-    return $ concatMap convert res
+    return $ optimize $ concatMap convert res
 
 parse :: TQ.QuasiQuoter
 -- ^ Parser for QuasiQUoter

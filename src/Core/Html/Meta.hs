@@ -1,7 +1,11 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Core.Html.Meta where
+module Core.Html.Meta
+  ( MetaNode(..)
+  , optimize
+  , convert
+  ) where
 
 import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Syntax       as TS
@@ -38,6 +42,18 @@ instance TS.Lift MetaNode where
            True -> BS.concat <$> sequence $(TS.lift nodes)
            _ -> return ""
      |]
+
+-- * Optimizer
+
+optimize :: [MetaNode] -> [MetaNode]
+optimize (MStr a : MStr b : res) = optimize $ MStr (a ++ b) : res
+optimize (MStr a : res) = MStr a : optimize res
+optimize (MForeach vals vs nodes : res) =
+    (MForeach vals vs $ optimize nodes) : optimize res
+optimize (MIf attrs nodes : res) =
+    (MIf attrs $ optimize nodes) : optimize res
+optimize (a : res) = a : optimize res
+optimize [] = []
 
 -- * Converter
 
