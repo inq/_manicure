@@ -6,7 +6,6 @@ module Core.Html
   ( parse
   ) where
 
-import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.UTF8             as UTF8
@@ -23,29 +22,6 @@ data Status
 -- * Instances
 instance TS.Lift Html where
     lift (Html nodes) = [| return $ concat nodes |]
-
-instance TS.Lift Node where
-    lift (Tag string attrs nodes) =
-     [|  [($(TS.lift $ concat ["<", string]) :: BS.ByteString)]
-         ++ $(TS.lift attrs)
-         ++ [">"]
-         ++ concat $(TS.lift $ nodes)
-         ++ [$(TS.lift $ concat ["</", string, ">"])]
-      |]
-    lift (Foreach vals vs nodes) =
-     [| concat $ concatMap
-          (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> $(TS.lift nodes))
-          $(return $ TS.VarE $ TS.mkName vals)
-     |]
-    lift (If attrs nodes) =
-     [| case $(return $
-                (foldl (\a b -> TS.AppE a b)
-                ((TS.VarE . TS.mkName . head) attrs)
-                (map (TS.VarE . TS.mkName) (tail attrs)))) of
-          True -> concat nodes
-          _ -> [] :: [BS.ByteString]
-      |]
-    lift (Text a) = [| [a] |]
 
 instance TS.Lift Status where
     lift Child   = [| Child |]
