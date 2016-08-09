@@ -16,7 +16,7 @@ import qualified System.Directory               as D
 import qualified Core.Route                     as Route
 import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
-import qualified Core.Handler                   as H
+import qualified Core.Component                 as Com
 import qualified Control.Monad                  as M
 
 daemonize :: String -> String -> String -> IO () -> IO ()
@@ -84,10 +84,10 @@ acceptBody routeTree response404 fd db = do
     (response, state) <- case Route.match uri method routeTree of
         Just (handler, params) -> do
             putStrLn "handler"
-            H.runHandler handler params db request
+            Com.runHandler handler params db request
         Nothing -> do
             putStrLn "nothing"
-            return $ (Res.error 404 response404, H.ResState db [] request)
+            return $ (Res.error 404 response404, Com.ResState db [] request)
     print response
     NSB.sendAll fd $ Res.render response
     NS.sClose fd

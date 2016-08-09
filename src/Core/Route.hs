@@ -6,19 +6,19 @@
 {-# LANGUAGE OverloadedStrings    #-}
 module Core.Route where
 
-import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Language.Haskell.TH.Syntax       as TS
-import qualified Core.Request                     as Req
-import qualified Core.Handler                     as H
+import qualified Data.ByteString.Char8            as BS
 import qualified Data.Map.Strict                  as M
+import qualified Core.Request                     as Req
+import qualified Core.Component                   as Com
 import qualified Core.Parser                      as P
 
 -- * Data types
 
 data Routes = Routes ![Route]
 data Route = Route !String !Req.Method !String
-data RouteTree = Node !(M.Map BS.ByteString RouteTree) !(M.Map Req.Method H.Handler)
+data RouteTree = Node !(M.Map BS.ByteString RouteTree) !(M.Map Req.Method Com.Handler)
 
 -- * Instances
 
@@ -46,14 +46,14 @@ mergeNode :: RouteTree -> RouteTree -> RouteTree
 mergeNode (Node a ha) (Node b hb) =
     Node (M.unionWith mergeNode a b) (M.union ha hb)
 
-makeNode :: [BS.ByteString] -> Req.Method -> H.Handler -> RouteTree
+makeNode :: [BS.ByteString] -> Req.Method -> Com.Handler -> RouteTree
 -- ^ Parsing the given ByteStrings, make a route chain
 makeNode (str : strs) method action =
     Node (M.singleton str $ makeNode strs method action) M.empty
 makeNode [] method action =
     Node M.empty $ M.singleton method action
 
-match :: BS.ByteString -> Req.Method -> RouteTree -> Maybe (H.Handler, [BS.ByteString])
+match :: BS.ByteString -> Req.Method -> RouteTree -> Maybe (Com.Handler, [BS.ByteString])
 -- ^ Find a corresponding route from the given request URI
 match uri method tree =
     case M.lookup method _map of

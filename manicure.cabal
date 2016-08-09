@@ -34,7 +34,7 @@ library
   ghc-options:       -fllvm -auto-all
   exposed-modules:   Core.Request
                    , Core.Response
-                   , Core.Handler
+                   , Core.Component
                    , Core.Route
                    , Core.Http
                    , Core.Html
