@@ -2,57 +2,31 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Core.Html.Node
   ( Node (..)
+  , Attr (..)
+  , Token (..)
   , parseLine
   ) where
 
-import qualified Language.Haskell.TH.Syntax       as TS
-import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
-import Core.Html.Token (Token(..))
 import Control.Applicative ((<|>))
 
 -- * Data types
+data Token
+  = TStr !String
+  | TVal !String
+  deriving Show
+
 data Node
-  = Tag !String ![Attr] ![Node]
-  | Text !Token
-  | Foreach !String ![String] ![Node]
-  | If ![String] ![Node]
+  = NTag !String ![Attr] ![Node]
+  | NText !Token
+  | NForeach !String ![String] ![Node]
+  | NIf ![String] ![Node]
   deriving Show
 
 data Attr
-  = Dash !String ![Attr]
-  | Attr !String !Token
+  = Attr !String !Token
   deriving Show
-
--- * Instances
-instance TS.Lift Attr where
-    lift (Attr name value) =
-     [| BS.concat [ " ", name, "=\"", $(TS.lift value), "\"" ]|]
-    lift _ = error "procAttrs: Dash is not allowed"
-
-instance TS.Lift Node where
-    lift (Tag string attrs nodes) =
-     [|  [($(TS.lift $ concat ["<", string]) :: BS.ByteString)]
-         ++ $(TS.lift attrs)
-         ++ [">"]
-         ++ concat $(TS.lift $ nodes)
-         ++ [$(TS.lift $ concat ["</", string, ">"])]
-      |]
-    lift (Foreach vals vs nodes) =
-     [| concat $ concatMap
-          (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> $(TS.lift nodes))
-          $(return $ TS.VarE $ TS.mkName vals)
-     |]
-    lift (If attrs nodes) =
-     [| case $(return $
-                (foldl (\a b -> TS.AppE a b)
-                ((TS.VarE . TS.mkName . head) attrs)
-                (map (TS.VarE . TS.mkName) (tail attrs)))) of
-          True -> concat nodes
-          _ -> [] :: [BS.ByteString]
-      |]
-    lift (Text a) = [| [a] |]
 
 -- * Parser
 
@@ -70,7 +44,7 @@ parseToken = do
 
 parseTag :: P.Parser Node
 -- ^ Parse the tag.
-parseTag = Tag
+parseTag = NTag
     <$> UTF8.toString <$> (P.noneOf " \n")
     <*> (P.try parseArgs <|> return [])
     <*> return []
@@ -90,12 +64,12 @@ parseCommand = do
         c' -> error $ "unexpected char(" ++ [c'] ++ ")"
   where
     ifNode = P.string "if" *> P.skipSpace *> (
-        If
+        NIf
         <$> (map UTF8.toString <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
         <*> return []
       )
     foreachNode = P.string "foreach" *> P.skipSpace *> (
-        Foreach
+        NForeach
         <$> UTF8.toString <$> P.noneOf " "
         <*> (map UTF8.toString <$>
               (P.string " -> " *>
@@ -123,5 +97,5 @@ parseLine = do
     valueNode = do
         P.anyChar *> P.skipSpace
         val <- P.noneOf "\n"
-        return $ (Text . TVal) $ UTF8.toString val
-    textNode = P.anyChar *> P.skipSpace *> ((Text . TStr) <$> UTF8.toString <$> P.noneOf "\n")
+        return $ (NText . TVal) $ UTF8.toString val
+    textNode = P.anyChar *> P.skipSpace *> ((NText . TStr) <$> UTF8.toString <$> P.noneOf "\n")

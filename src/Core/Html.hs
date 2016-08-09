@@ -7,34 +7,18 @@ module Core.Html
   ) where
 
 import qualified Language.Haskell.TH.Quote        as TQ
-import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
 import Core.Html.Node (Node(..), parseLine)
-
--- * Data types
-data Html
-  = Html ![Node]
-data Status
-  = Child | Sibling | Parent
-  deriving Show
-
--- * Instances
-instance TS.Lift Html where
-    lift (Html nodes) = [| return $ concat nodes |]
-
-instance TS.Lift Status where
-    lift Child   = [| Child |]
-    lift Sibling = [| Sibling |]
-    lift Parent  = [| Parent |]
+import Core.Html.Meta (MetaNode(..), convert)
 
 -- * TH
 
-parseNode :: P.Parser Html
+parseNode :: P.Parser [MetaNode]
 -- ^ The main parser
 parseNode = do
     (_, res, _) <- buildTree <$> P.many parseLine
-    return (Html res)
+    return $ concatMap convert res
 
 parse :: TQ.QuasiQuoter
 -- ^ Parser for QuasiQUoter
@@ -47,7 +31,7 @@ parse = TQ.QuasiQuoter {
   where
     quoteExp str = do
         case P.parseOnly parseNode (UTF8.fromString str) of
-            Right tag -> [| tag |]
+            Right tag -> [| return tag |]
             Left _    -> undefined
 
 -- * Node
@@ -60,9 +44,9 @@ buildTree ((indent, node) : rest)
     | otherwise  = (indent, (node) : res, remaining)
   where
     (next, res, remaining) = buildTree rest
-    replace (Foreach vals val _) = Foreach vals val
-    replace (Tag name attr _) = Tag name attr
-    replace (If args _) = If args
-    replace (Text _) = error "indentation error"
+    replace (NForeach vals val _) = NForeach vals val
+    replace (NTag name attr _) = NTag name attr
+    replace (NIf args _) = NIf args
+    replace (NText _) = error "indentation error"
 buildTree []  =
     (0, [], [])

@@ -46,7 +46,7 @@ library
                    , Core.Markdown
                    , Core.Model
                    , Core.Launcher
-  other-modules:     Core.Html.Token
+  other-modules:     Core.Html.Meta
                    , Core.Html.Node
   build-depends:     base
                    , network
