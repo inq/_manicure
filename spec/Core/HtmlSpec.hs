@@ -16,39 +16,50 @@ spec =
           div { class: 'hello', id: "hihi" }
             | hi
          |]
-        BS.concat res `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
+        res `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
       it "parses values" $ do
         res <- [parse|html
           div { class: theValue }
             | ha
          |]
-        BS.concat res `shouldBe` UTF8.fromString "<html><div class=\"VALUE\">ha</div></html>"
+        res `shouldBe` UTF8.fromString "<html><div class=\"VALUE\">ha</div></html>"
     context "UTF-8 Text" $ do
       it "parses simple utf-8" $ do
         res <- [parse|html
           div
             | 안녕
          |]
-        BS.concat res `shouldBe` UTF8.fromString "<html><div>안녕</div></html>"
+        res `shouldBe` UTF8.fromString "<html><div>안녕</div></html>"
+    context "Monadic Context" $ do
+      it "parses monad combination" $ do
+        let inner = [parse|p
+           | inner
+         |]
+        res <- [parse|html
+          div
+            ^ inner
+            | outer
+         |]
+        res `shouldBe` UTF8.fromString "<html><div><p>inner</p>outer</div></html>"
     context "Simple Text" $ do
       it "parses simple tag" $ do
         res <- [parse|html
           div
             | Hello
          |]
-        BS.concat res `shouldBe` "<html><div>Hello</div></html>"
+        res `shouldBe` "<html><div>Hello</div></html>"
       it "parses simple variable" $ do
         res <- [parse|html
           div
             = theValue
          |]
-        BS.concat res `shouldBe` "<html><div>VALUE</div></html>"
+        res `shouldBe` "<html><div>VALUE</div></html>"
       it "parses simple tag" $ do
         res <- [parse|html
           div
             | Hello
          |]
-        BS.concat res `shouldBe` "<html><div>Hello</div></html>"
+        res `shouldBe` "<html><div>Hello</div></html>"
       it "processes simple foreach statement" $ do
         res <- [parse|- foreach people -> name, title
           div
@@ -57,7 +68,7 @@ spec =
             p
               = title
          |]
-        BS.concat res `shouldBe` "<div><p>A</p><p>B</p></div>"
+        res `shouldBe` "<div><p>A</p><p>B</p></div>"
     context "If statement" $ do
       it "parses true statement" $ do
         res <- [parse|html
@@ -66,7 +77,7 @@ spec =
               p
                 | Hello
          |]
-        BS.concat res `shouldBe` "<html><div><p>Hello</p></div></html>"
+        res `shouldBe` "<html><div><p>Hello</p></div></html>"
       it "parses false statement" $ do
         res <- [parse|html
           div
@@ -74,7 +85,7 @@ spec =
               p
                 | Hello
          |]
-        BS.concat res `shouldBe` "<html><div></div></html>"
+        res `shouldBe` "<html><div></div></html>"
       it "applies true function" $ do
         res <- [parse|html
           div
@@ -82,7 +93,7 @@ spec =
               p
                 | Hello
          |]
-        BS.concat res `shouldBe` "<html><div><p>Hello</p></div></html>"
+        res `shouldBe` "<html><div><p>Hello</p></div></html>"
       it "applies false function" $ do
         res <- [parse|html
           div
@@ -90,7 +101,7 @@ spec =
               p
                 | Hello
           |]
-        BS.concat res `shouldBe` "<html><div></div></html>"
+        res `shouldBe` "<html><div></div></html>"
  where
   theValue = "VALUE" :: BS.ByteString
   people = [["A", "B"] :: [BS.ByteString]]
