@@ -30,6 +30,17 @@ spec =
             | 안녕
          |]
         res `shouldBe` UTF8.fromString "<html><div>안녕</div></html>"
+    context "Monadic Context" $ do
+      it "parses monad combination" $ do
+        let inner = [parse|p
+           | inner
+         |]
+        res <- [parse|html
+          div
+            ^ inner
+            | outer
+         |]
+        res `shouldBe` UTF8.fromString "<html><div><p>inner</p>outer</div></html>"
     context "Simple Text" $ do
       it "parses simple tag" $ do
         res <- [parse|html

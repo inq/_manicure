@@ -15,6 +15,7 @@ import Control.Applicative ((<|>))
 data Token
   = TStr !String
   | TVal !String
+  | TMon !String
   deriving Show
 
 data Node
@@ -85,6 +86,7 @@ parseLine = do
     tag <- case c of
         '|' -> textNode
         '=' -> valueNode
+        '^' -> monadNode
         '-' -> parseCommand
         _ -> parseTag
     _ <- P.char '\n'
@@ -98,4 +100,8 @@ parseLine = do
         P.anyChar *> P.skipSpace
         val <- P.noneOf "\n"
         return $ (NText . TVal) $ UTF8.toString val
+    monadNode = do
+        P.anyChar *> P.skipSpace
+        val <- P.noneOf "\n"
+        return $ (NText . TMon) $ UTF8.toString val
     textNode = P.anyChar *> P.skipSpace *> ((NText . TStr) <$> UTF8.toString <$> P.noneOf "\n")

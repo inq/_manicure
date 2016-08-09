@@ -14,6 +14,7 @@ data Response = Response
   , content :: {-# UNPACK #-} !BS.ByteString
   } deriving Show
 
+
 cookieToString :: [BS.ByteString] -> [BS.ByteString]
 -- ^ Convert cookies to string
 cookieToString = map (\x -> BS.concat ["Set-Cookie: ", x, "; path=/\r\n"])
