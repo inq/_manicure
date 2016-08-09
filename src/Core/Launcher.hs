@@ -6,7 +6,6 @@ import qualified Network.Socket                 as NS
 import qualified Network.Socket.ByteString      as NSB
 import qualified Network.Socket.ByteString.Lazy as NSL
 import qualified Data.ByteString.Char8          as BS
-import qualified Data.ByteString.Lazy           as LS
 import qualified Core.Database                  as DB
 import qualified Control.Concurrent             as CC
 import qualified System.Posix.Process           as P
@@ -17,11 +16,8 @@ import qualified System.Directory               as D
 import qualified Core.Route                     as Route
 import qualified Core.Request                   as Req
 import qualified Core.Response                  as Res
+import qualified Core.Handler                   as H
 import qualified Control.Monad                  as M
-import qualified Data.List                      as L
-import qualified Data.ByteString.Lazy.Internal  as LSI
-import System.IO.Unsafe (unsafeInterleaveIO)
-
 
 daemonize :: String -> String -> String -> IO () -> IO ()
 -- ^ Daemonize the given function
@@ -85,13 +81,13 @@ acceptBody routeTree response404 fd db = do
     let request = Req.parse req' fd
     let uri = Req.uri request
     let method = Req.method request
-    response <- case Route.match uri method routeTree of
-                    Just handler -> do
-                        putStrLn "handler"
-                        handler db request
-                    Nothing -> do
-                        putStrLn "nothing"
-                        return $ Res.error 404 response404
+    (response, state) <- case Route.match uri method routeTree of
+        Just (handler, params) -> do
+            putStrLn "handler"
+            H.runHandler handler params db request
+        Nothing -> do
+            putStrLn "nothing"
+            return $ (Res.error 404 response404, H.ResState db [] request)
     print response
     NSB.sendAll fd $ Res.render response
     NS.sClose fd

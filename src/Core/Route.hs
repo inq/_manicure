@@ -10,14 +10,17 @@ import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Core.Request                     as Req
-import qualified Core.Response                    as Res
+import qualified Core.Handler                     as H
 import qualified Data.Map.Strict                  as M
 import qualified Core.Parser                      as P
 
+-- * Data types
+
 data Routes = Routes ![Route]
 data Route = Route !String !Req.Method !String
-data RouteTree = Node !(M.Map BS.ByteString RouteTree) !(M.Map Req.Method Res.Handler)
-    deriving Show
+data RouteTree = Node !(M.Map BS.ByteString RouteTree) !(M.Map Req.Method H.Handler)
+
+-- * Instances
 
 instance TS.Lift Route where
     lift (Route uri method action) = [|
@@ -33,8 +36,9 @@ instance TS.Lift Route where
             | char == c    = r : split c chars ""
             | otherwise    = split c chars (r ++ [char])
         uriTokens = filter (/= "") $ split '/' uri ""
+
 instance TS.Lift Routes where
-    lift (Routes a) = 
+    lift (Routes a) =
         [| foldl1 mergeNode a |]
 
 mergeNode :: RouteTree -> RouteTree -> RouteTree
@@ -42,30 +46,30 @@ mergeNode :: RouteTree -> RouteTree -> RouteTree
 mergeNode (Node a ha) (Node b hb) =
     Node (M.unionWith mergeNode a b) (M.union ha hb)
 
-makeNode :: [BS.ByteString] -> Req.Method -> Res.Handler -> RouteTree
+makeNode :: [BS.ByteString] -> Req.Method -> H.Handler -> RouteTree
 -- ^ Parsing the given ByteStrings, make a route chain
-makeNode (str : strs) method action = 
+makeNode (str : strs) method action =
     Node (M.singleton str $ makeNode strs method action) M.empty
 makeNode [] method action =
     Node M.empty $ M.singleton method action
 
-match :: BS.ByteString -> Req.Method -> RouteTree -> Maybe Res.Action
+match :: BS.ByteString -> Req.Method -> RouteTree -> Maybe (H.Handler, [BS.ByteString])
 -- ^ Find a corresponding route from the given request URI
 match uri method tree =
     case M.lookup method _map of
-        Just res -> Just $ res $ reverse args
+        Just res -> Just (res, reverse args)
         Nothing  -> Nothing
   where
     (Node _ _map, args) = findNode uriTokens tree []
     uriTokens = filter (not . BS.null) $ BS.split '/' uri
-    findNode (_head : _tail) (Node children _) params = 
+    findNode (_head : _tail) (Node children _) params =
         case M.lookup _head children of
             Just a  -> findNode _tail a params
             Nothing -> case M.lookup "#String" children of
                 Just a -> findNode _tail a (_head : params)
                 Nothing -> (Node M.empty M.empty, [])
     findNode [] node params = (node, params)
-    
+
 parseFile :: FilePath -> TS.Q TS.Exp
 -- ^ Parse the route definition file
 parseFile filePath = do
@@ -75,14 +79,14 @@ parseFile filePath = do
 
 parse :: TQ.QuasiQuoter
 -- ^ A QuasiQuoter for parsing the route definition
-parse = TQ.QuasiQuoter 
+parse = TQ.QuasiQuoter
     { TQ.quoteExp = quoteExp
     , TQ.quotePat = undefined
     , TQ.quoteType = undefined
     , TQ.quoteDec = undefined
     }
   where
-    quoteExp str = 
+    quoteExp str =
         case P.parseOnly routesNode (BS.pack str) of
             Left _ -> undefined
             Right tag -> [| tag |]
