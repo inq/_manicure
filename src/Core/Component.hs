@@ -22,7 +22,7 @@ data ResState = ResState
 -- * Type Aliases
 
 type Handler = MS.StateT ResState IO Res.Response
-type Component = MS.StateT ResState IO [BS.ByteString]
+type Component = MS.StateT ResState IO BS.ByteString
 
 -- * Handler
 
