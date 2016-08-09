@@ -16,20 +16,21 @@ data MetaNode
   | MIf ![String] ![MetaNode]
 
 instance TS.Lift MetaNode where
-  lift (MStr a) = [| UTF8.fromString a |]
-  lift (MVal a) = [| ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
+  lift (MStr a) = [| return $ UTF8.fromString a |]
+  lift (MVal a) = [| return $ ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
   lift (MForeach vals vs nodes) =
-    [| BS.concat $ map
-        (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs))) -> BS.concat $(TS.lift nodes))
-         $(return $ TS.VarE $ TS.mkName vals)
+    [| BS.concat <$> (sequence $ concatMap
+        (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs)))
+            -> $(TS.lift nodes))
+         $(return $ TS.VarE $ TS.mkName vals))
      |]
   lift (MIf attrs nodes) =
     [| case $(return $
               (foldl (\a b -> TS.AppE a b)
               ((TS.VarE . TS.mkName . head) attrs)
               (map (TS.VarE . TS.mkName) (tail attrs)))) of
-           True -> BS.concat $(TS.lift nodes)
-           _ -> ""
+           True -> BS.concat <$> sequence $(TS.lift nodes)
+           _ -> return ""
      |]
 
 convert :: Node -> [MetaNode]

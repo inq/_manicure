@@ -6,6 +6,7 @@ module Core.Html
   ( parse
   ) where
 
+import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Quote        as TQ
 import qualified Data.ByteString.UTF8             as UTF8
 import qualified Core.Parser                      as P
@@ -31,7 +32,7 @@ parse = TQ.QuasiQuoter {
   where
     quoteExp str = do
         case P.parseOnly parseNode (UTF8.fromString str) of
-            Right tag -> [| return tag |]
+            Right tag -> [| BS.concat <$> sequence tag |]
             Left _    -> undefined
 
 -- * Node
