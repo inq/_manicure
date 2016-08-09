@@ -17,7 +17,6 @@ data Node
   = Tag !String ![Attr] ![Node]
   | Text !Token
   | Foreach !String ![String] ![Node]
-  | Render !String
   | If ![String] ![Node]
   deriving Show
 
@@ -63,12 +62,10 @@ parseCommand :: P.Parser Node
 parseCommand = do
     c <- P.anyChar *> P.skipSpace *> P.peekChar'
     case c of
-        'r' -> renderNode
         'i' -> ifNode
         'f' -> foreachNode
         c' -> error $ "unexpected char(" ++ [c'] ++ ")"
   where
-    renderNode = P.string "render" *> P.skipSpace *> (Render <$> UTF8.toString <$> P.noneOf "\n")
     ifNode = P.string "if" *> P.skipSpace *> (
         If
         <$> (map UTF8.toString <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
