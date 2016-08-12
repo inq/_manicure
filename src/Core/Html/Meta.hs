@@ -19,7 +19,7 @@ data MetaNode
   = MStr !String
   | MVal !String
   | MMon !String
-  | MForeach !String ![String] ![MetaNode]
+  | MMap !String !String ![MetaNode]
   | MIf ![String] ![MetaNode]
 
 -- * Instances
@@ -28,11 +28,11 @@ instance TS.Lift MetaNode where
   lift (MStr a) = [| return $ UTF8.fromString a |]
   lift (MVal a) = [| return $ ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
   lift (MMon a) = [| $(return $ TS.VarE $ TS.mkName a) |]
-  lift (MForeach vals vs nodes) =
+  lift (MMap vs v nodes) =
     [| BS.concat <$> (sequence $ concatMap
-        (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs)))
+        (\($(return $ TS.VarP $ TS.mkName v))
             -> $(TS.lift nodes))
-         $(return $ TS.VarE $ TS.mkName vals))
+         $(return $ TS.VarE $ TS.mkName vs))
      |]
   lift (MIf attrs nodes) =
     [| case $(return $
@@ -48,8 +48,8 @@ instance TS.Lift MetaNode where
 optimize :: [MetaNode] -> [MetaNode]
 optimize (MStr a : MStr b : res) = optimize $ MStr (a ++ b) : res
 optimize (MStr a : res) = MStr a : optimize res
-optimize (MForeach vals vs nodes : res) =
-    (MForeach vals vs $ optimize nodes) : optimize res
+optimize (MMap vs v nodes : res) =
+    (MMap vs v $ optimize nodes) : optimize res
 optimize (MIf attrs nodes : res) =
     (MIf attrs $ optimize nodes) : optimize res
 optimize (a : res) = a : optimize res
@@ -66,7 +66,7 @@ convert (NTag name attrs nodes) = concat
   , concatMap convert nodes
   , [MStr $ "</" ++ name ++ ">"]
   ]
-convert (NForeach vals vs ns) = [ MForeach vals vs $ concatMap convert ns ]
+convert (NMap vs v ns) = [ MMap vs v $ concatMap convert ns ]
 convert (NIf c ns) = [ MIf c $ concatMap convert ns ]
 convert (NText t) = [ fromToken t ]
 

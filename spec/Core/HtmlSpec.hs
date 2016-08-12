@@ -60,13 +60,12 @@ spec =
             | Hello
          |]
         res `shouldBe` "<html><div>Hello</div></html>"
-      it "processes simple foreach statement" $ do
-        res <- [parse|- foreach people -> name, title
-          div
+      it "processes simple map statement" $ do
+        let people = ["A", "B"] :: [BS.ByteString]
+        res <- [parse|div
+          - map people -> name
             p
               = name
-            p
-              = title
          |]
         res `shouldBe` "<div><p>A</p><p>B</p></div>"
     context "If statement" $ do
@@ -104,7 +103,6 @@ spec =
         res `shouldBe` "<html><div></div></html>"
  where
   theValue = "VALUE" :: BS.ByteString
-  people = [["A", "B"] :: [BS.ByteString]]
   trueStatement = True
   falseStatement = False
   greaterThan = (>) :: Integer -> Integer -> Bool

@@ -21,7 +21,7 @@ data Token
 data Node
   = NTag !String ![Attr] ![Node]
   | NText !Token
-  | NForeach !String ![String] ![Node]
+  | NMap !String !String ![Node]
   | NIf ![String] ![Node]
   deriving Show
 
@@ -56,12 +56,12 @@ parseTag = NTag
         <*> parseToken
 
 parseCommand :: P.Parser Node
--- ^ Parse commands: render, if, foreach.
+-- ^ Parse commands: render, if, map.
 parseCommand = do
     c <- P.anyChar *> P.skipSpace *> P.peekChar'
     case c of
         'i' -> ifNode
-        'f' -> foreachNode
+        'm' -> mapNode
         c' -> error $ "unexpected char(" ++ [c'] ++ ")"
   where
     ifNode = P.string "if" *> P.skipSpace *> (
@@ -69,12 +69,11 @@ parseCommand = do
         <$> (map UTF8.toString <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
         <*> return []
       )
-    foreachNode = P.string "foreach" *> P.skipSpace *> (
-        NForeach
+    mapNode = P.string "map" *> P.skipSpace *> (
+        NMap
         <$> UTF8.toString <$> P.noneOf " "
-        <*> (map UTF8.toString <$>
-              (P.string " -> " *>
-                (P.sepBy (P.spaces *> P.noneOf " ,\n") $ P.char ',')))
+        <*> (UTF8.toString <$>
+              (P.spaces *> P.string "->" *> P.spaces *> P.noneOf " \n" <* P.spaces))
         <*> return []
       )
 
