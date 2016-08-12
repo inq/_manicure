@@ -14,8 +14,8 @@ import Control.Applicative ((<|>))
 -- * Data types
 data Token
   = TStr !String
-  | TVal !String
-  | TMon !String
+  | TVal ![String]
+  | TMon ![String]
   deriving Show
 
 data Node
@@ -39,7 +39,7 @@ parseToken = do
     res <- case c of
       '\'' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\'" <* P.char '\'')
       '\"' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\"" <* P.char '\"')
-      _ -> (TVal . UTF8.toString <$> (P.noneOf1 ",} "))
+      _ -> TVal . (:[]) . UTF8.toString <$> (P.noneOf1 ",} ")
     P.skipSpace
     return res
 
@@ -97,10 +97,10 @@ parseLine = do
       )
     valueNode = do
         P.anyChar *> P.skipSpace
-        val <- P.noneOf "\n"
-        return $ (NText . TVal) $ UTF8.toString val
+        vals <- (P.sepBy (UTF8.toString <$> (P.spaces *> P.noneOf " \n")) $ P.char ' ')
+        return $ (NText . TVal) $ vals
     monadNode = do
         P.anyChar *> P.skipSpace
-        val <- P.noneOf "\n"
-        return $ (NText . TMon) $ UTF8.toString val
+        vals <- (P.sepBy (UTF8.toString <$> (P.spaces *> P.noneOf " \n")) $ P.char ' ')
+        return $ (NText . TMon) $ vals
     textNode = P.anyChar *> P.skipSpace *> ((NText . TStr) <$> UTF8.toString <$> P.noneOf "\n")

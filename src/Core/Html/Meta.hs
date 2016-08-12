@@ -17,8 +17,8 @@ import Core.Html.Node
 
 data MetaNode
   = MStr !String
-  | MVal !String
-  | MMon !String
+  | MVal ![String]
+  | MMon ![String]
   | MMap !String !String ![MetaNode]
   | MIf ![String] ![MetaNode]
 
@@ -26,8 +26,18 @@ data MetaNode
 
 instance TS.Lift MetaNode where
   lift (MStr a) = [| return $ UTF8.fromString a |]
-  lift (MVal a) = [| return $ ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
-  lift (MMon a) = [| $(return $ TS.VarE $ TS.mkName a) |]
+  lift (MVal as) =
+    [| return $ ByteString.convert $(return $
+         (foldl (\a b -> TS.AppE a b)
+         ((TS.VarE . TS.mkName . head) as)
+         (map (TS.VarE . TS.mkName) (tail as))))
+     |]
+  lift (MMon as) =
+    [| $(return $
+         (foldl (\a b -> TS.AppE a b)
+         ((TS.VarE . TS.mkName . head) as)
+         (map (TS.VarE . TS.mkName) (tail as))))
+     |]
   lift (MMap vs v nodes) =
     [| BS.concat <$> (sequence $ concatMap
         (\($(return $ TS.VarP $ TS.mkName v))
@@ -77,5 +87,5 @@ fromAttr (Attr s t) = [MStr $ " " ++ s ++ "=\"", fromToken t, MStr "\""]
 fromToken :: Token -> MetaNode
 -- ^ Convert a token to a list of meta nodes
 fromToken (TStr s) = MStr s
-fromToken (TVal s) = MVal s
-fromToken (TMon s) = MMon s
+fromToken (TVal as) = MVal as
+fromToken (TMon as) = MMon as

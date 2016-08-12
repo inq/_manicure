@@ -18,6 +18,7 @@ spec =
          |]
         res `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
       it "parses values" $ do
+        let  theValue = "VALUE" :: BS.ByteString
         res <- [parse|html
           div { class: theValue }
             | ha
@@ -41,6 +42,18 @@ spec =
             | outer
          |]
         res `shouldBe` UTF8.fromString "<html><div><p>inner</p>outer</div></html>"
+      it "parses monad combinating function" $ do
+        let inner v = [parse|p
+           | inner
+           = v
+         |]
+        let arg = "center" :: BS.ByteString
+        res <- [parse|html
+          div
+            ^ inner arg
+            | outer
+         |]
+        res `shouldBe` UTF8.fromString "<html><div><p>innercenter</p>outer</div></html>"
     context "Simple Text" $ do
       it "parses simple tag" $ do
         res <- [parse|html
@@ -49,11 +62,20 @@ spec =
          |]
         res `shouldBe` "<html><div>Hello</div></html>"
       it "parses simple variable" $ do
+        let  theValue = "VALUE" :: BS.ByteString
         res <- [parse|html
           div
             = theValue
          |]
         res `shouldBe` "<html><div>VALUE</div></html>"
+      it "parses simple function" $ do
+        let theFunc x = BS.concat ["---", x, "---"]
+        let theVal = "HELLO"
+        res <- [parse|html
+          div
+            = theFunc theVal
+         |]
+        res `shouldBe` "<html><div>---HELLO---</div></html>"
       it "parses simple tag" $ do
         res <- [parse|html
           div
@@ -102,7 +124,6 @@ spec =
           |]
         res `shouldBe` "<html><div></div></html>"
  where
-  theValue = "VALUE" :: BS.ByteString
   trueStatement = True
   falseStatement = False
   greaterThan = (>) :: Integer -> Integer -> Bool
