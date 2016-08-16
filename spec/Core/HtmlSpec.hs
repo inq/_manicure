@@ -17,13 +17,6 @@ spec =
             | hi
          |]
         res `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
-      it "parses values" $ do
-        let  theValue = "VALUE" :: BS.ByteString
-        res <- [parse|html
-          div { class: theValue }
-            | ha
-         |]
-        res `shouldBe` UTF8.fromString "<html><div class=\"VALUE\">ha</div></html>"
     context "UTF-8 Text" $ do
       it "parses simple utf-8" $ do
         res <- [parse|html
@@ -35,7 +28,7 @@ spec =
       it "parses monad combination" $ do
         let inner = [parse|p
            | inner
-         |]
+         |] :: IO BS.ByteString
         res <- [parse|html
           div
             ^ inner
@@ -76,6 +69,13 @@ spec =
             = theFunc theVal
          |]
         res `shouldBe` "<html><div>---HELLO---</div></html>"
+      it "parses simple function with string" $ do
+        let theFunc x = BS.concat ["---", x, "---"]
+        res <- [parse|html
+          div
+            = theFunc "HIHI"
+         |]
+        res `shouldBe` "<html><div>---HIHI---</div></html>"
       it "parses simple tag" $ do
         res <- [parse|html
           div

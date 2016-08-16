@@ -48,6 +48,6 @@ buildTree ((indent, node) : rest)
     replace (NMap vals val _) = NMap vals val
     replace (NTag name attr _) = NTag name attr
     replace (NIf args _) = NIf args
-    replace (NText _) = error "indentation error"
+    replace _ = error "indentation error"
 buildTree []  =
     (0, [], [])

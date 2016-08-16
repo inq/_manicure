@@ -14,13 +14,14 @@ import Control.Applicative ((<|>))
 -- * Data types
 data Token
   = TStr !String
-  | TVal ![String]
-  | TMon ![String]
+  | TRef !String
   deriving Show
 
 data Node
   = NTag !String ![Attr] ![Node]
-  | NText !Token
+  | NBts ![Token]
+  | NStr ![Token]
+  | NMon ![Token]
   | NMap !String !String ![Node]
   | NIf ![String] ![Node]
   deriving Show
@@ -34,13 +35,13 @@ data Attr
 parseToken :: P.Parser Token
 -- ^ Parse the token.
 parseToken = do
-    P.skipSpace *> P.char ':' *> P.skipSpace
-    c <- P.skipSpace *> P.peekChar'
+    c <- P.spaces *> P.peekChar'
     res <- case c of
       '\'' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\'" <* P.char '\'')
       '\"' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\"" <* P.char '\"')
-      _ -> TVal . (:[]) . UTF8.toString <$> (P.noneOf1 ",} ")
-    P.skipSpace
+      '\n' -> fail "newline reached"
+      _ -> TRef . UTF8.toString <$> (P.noneOf1 ",}\n ")
+    P.spaces
     return res
 
 parseTag :: P.Parser Node
@@ -53,7 +54,7 @@ parseTag = NTag
     parseArgs = P.token '{' *> (P.sepBy parseArg $ P.char ',') <* P.char '}'
     parseArg = Attr
         <$> (UTF8.toString <$> (P.skipSpace *> P.noneOf " :"))
-        <*> parseToken
+        <*> (P.skipSpace *> P.char ':' *> P.skipSpace *> parseToken)
 
 parseCommand :: P.Parser Node
 -- ^ Parse commands: render, if, map.
@@ -84,7 +85,8 @@ parseLine = do
     c <- P.peekChar'
     tag <- case c of
         '|' -> textNode
-        '=' -> valueNode
+        '$' -> strNode
+        '=' -> btsNode
         '^' -> monadNode
         '-' -> parseCommand
         _ -> parseTag
@@ -95,12 +97,11 @@ parseLine = do
         (P.char ' ' >> return 1) <|>
         (P.char '\t' >> fail "tab charactor is not allowed")
       )
-    valueNode = do
-        P.anyChar *> P.skipSpace
-        vals <- (P.sepBy (UTF8.toString <$> (P.spaces *> P.noneOf " \n")) $ P.char ' ')
-        return $ (NText . TVal) $ vals
-    monadNode = do
-        P.anyChar *> P.skipSpace
-        vals <- (P.sepBy (UTF8.toString <$> (P.spaces *> P.noneOf " \n")) $ P.char ' ')
-        return $ (NText . TMon) $ vals
-    textNode = P.anyChar *> P.skipSpace *> ((NText . TStr) <$> UTF8.toString <$> P.noneOf "\n")
+    strNode = P.anyChar *> P.skipSpace *>
+        (NStr <$> P.many1 parseToken)
+    btsNode = P.anyChar *> P.skipSpace *>
+        (NBts <$> P.many1 parseToken)
+    monadNode = P.anyChar *> P.skipSpace *>
+        (NMon <$> P.many1 parseToken)
+    textNode = P.anyChar *> P.skipSpace *>
+        (NStr . (:[]) . TStr . UTF8.toString <$> P.noneOf "\n")
