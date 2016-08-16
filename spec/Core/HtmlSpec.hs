@@ -7,6 +7,12 @@ import qualified Data.ByteString.UTF8             as UTF8
 import Core.Html
 import SpecHelper
 
+data Person = Person
+  { nP :: String
+  , mP :: String
+  , oP :: String
+  }
+
 spec :: Spec
 spec =
   describe "Core.HtmlSpec" $ do
@@ -90,6 +96,16 @@ spec =
               = name
          |]
         res `shouldBe` "<div><p>A</p><p>B</p></div>"
+      it "processes complex map statement" $ do
+        let people = [Person "A" "B" "C", Person "D" "E" "F"]
+        res <- [parse|div
+          - map people -> Person aE bE cE
+            p
+              $ aE
+              span { class: bE }
+                $ cE
+         |]
+        res `shouldBe` "<div><p>A<span class=\"B\">C</span></p><p>D<span class=\"E\">F</span></p></div>"
     context "If statement" $ do
       it "parses true statement" $ do
         res <- [parse|html

@@ -18,7 +18,7 @@ data MetaNode
   = MStr ![Token]
   | MBts ![Token]
   | MMon ![Token]
-  | MMap !String !String ![MetaNode]
+  | MMap !String ![String] ![MetaNode]
   | MIf ![String] ![MetaNode]
   deriving Show
 
@@ -39,9 +39,13 @@ instance TS.Lift MetaNode where
      |]
   lift (MMap vs v nodes) =
     [| BS.concat <$> (sequence $ concatMap
-        (\($(return $ TS.VarP $ TS.mkName v)) -> $(TS.lift nodes))
+        (\($(return $ mkP v)) -> $(TS.lift nodes))
          $(return $ TS.VarE $ TS.mkName vs))
      |]
+   where
+    mkP (p : []) = TS.VarP $ TS.mkName p
+    mkP (p : ps) = TS.ConP (TS.mkName p) $ map (TS.VarP . TS.mkName) ps
+    mkP [] = error "empty pattern"
   lift (MIf attrs nodes) =
     [| case $(return $
               (foldl TS.AppE

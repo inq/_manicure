@@ -22,7 +22,7 @@ data Node
   | NBts ![Token]
   | NStr ![Token]
   | NMon ![Token]
-  | NMap !String !String ![Node]
+  | NMap !String ![String] ![Node]
   | NIf ![String] ![Node]
   deriving Show
 
@@ -31,6 +31,15 @@ data Attr
   deriving Show
 
 -- * Parser
+
+parseStr :: P.Parser String
+-- ^ Parse a string
+parseStr = do
+    c <- P.spaces *> P.peekChar'
+    res <- case c of
+      '\n' -> fail "newline reached"
+      _ -> UTF8.toString <$> (P.noneOf1 "\n ")
+    return res
 
 parseToken :: P.Parser Token
 -- ^ Parse the token.
@@ -73,8 +82,9 @@ parseCommand = do
     mapNode = P.string "map" *> P.skipSpace *> (
         NMap
         <$> UTF8.toString <$> P.noneOf " "
-        <*> (UTF8.toString <$>
-              (P.spaces *> P.string "->" *> P.spaces *> P.noneOf " \n" <* P.spaces))
+        <*> (P.spaces *> P.string "->" *>
+             P.many1 parseStr
+             <* P.spaces)
         <*> return []
       )
 
