@@ -85,6 +85,9 @@ try = AC.try
 sepBy :: Alternative f => f a -> f s -> f [a]
 sepBy = AC.sepBy
 
+sepBy1 :: Alternative f => f a -> f s -> f [a]
+sepBy1 = AC.sepBy1
+
 sepBy' :: MonadPlus m => m a -> m s -> m [a]
 sepBy' = AC.sepBy'
 

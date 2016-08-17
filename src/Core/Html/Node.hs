@@ -27,7 +27,8 @@ data Node
   deriving Show
 
 data Attr
-  = Attr !String !Token
+  = ABts !String ![Token]
+  | AStr !String ![Token]
   deriving Show
 
 -- * Parser
@@ -49,6 +50,8 @@ parseToken = do
       '\'' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\'" <* P.char '\'')
       '\"' -> TStr . UTF8.toString <$> (P.anyChar *> P.noneOf1 "\"" <* P.char '\"')
       '\n' -> fail "newline reached"
+      '}' -> fail "braket reached"
+      ',' -> fail "comma reached"
       _ -> TRef . UTF8.toString <$> (P.noneOf1 ",}\n ")
     P.spaces
     return res
@@ -60,10 +63,14 @@ parseTag = NTag
     <*> (P.try parseArgs <|> return [])
     <*> return []
   where
-    parseArgs = P.token '{' *> (P.sepBy parseArg $ P.char ',') <* P.char '}'
-    parseArg = Attr
-        <$> (UTF8.toString <$> (P.skipSpace *> P.noneOf " :"))
-        <*> (P.skipSpace *> P.char ':' *> P.skipSpace *> parseToken)
+    parseArgs = P.token '{' *> (P.sepBy1 parseArg $ P.char ',') <* P.char '}'
+    parseArg = do
+        key <- UTF8.toString <$> (P.spaces *> P.noneOf " =$")
+        c <- P.spaces *> P.peekChar'
+        case c of
+            '=' -> P.anyChar *> (ABts key <$> P.many1 parseToken)
+            '$' -> P.anyChar *> (AStr key <$> P.many1 parseToken)
+            _ -> error ("invalid separator" ++ key ++ [c])
 
 parseCommand :: P.Parser Node
 -- ^ Parse commands: render, if, map.

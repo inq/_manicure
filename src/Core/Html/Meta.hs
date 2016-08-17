@@ -91,4 +91,5 @@ convert (NMon t) = [ MMon t ]
 
 fromAttr :: Attr -> [MetaNode]
 -- ^ Convert an attr to a list of meta nodes
-fromAttr (Attr s t) = [MStr [TStr $ " " ++ s ++ "=\""], MStr [t], MStr [TStr "\""]]
+fromAttr (ABts s t) = [MStr [TStr $ " " ++ s ++ "=\""], MBts t, MStr [TStr "\""]]
+fromAttr (AStr s t) = [MStr [TStr $ " " ++ s ++ "=\""], MStr t, MStr [TStr "\""]]
