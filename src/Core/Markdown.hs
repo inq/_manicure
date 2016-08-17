@@ -9,13 +9,13 @@ import Control.Applicative ((<|>))
 
 data Markdown = Markdown [Item]
           deriving (Eq, Show)
-data Item = H5  !LS.ByteString 
+data Item = H5  !LS.ByteString
           | H4  !LS.ByteString
           | H3  !LS.ByteString
           | H2  !LS.ByteString
           | H1  !LS.ByteString
           | Quote  !LS.ByteString
-          | Paragraph  !LS.ByteString 
+          | Paragraph  !LS.ByteString
           | Snippet !LS.ByteString ![LS.ByteString]
           deriving (Eq, Show)
 
@@ -37,7 +37,7 @@ parseItem = (parseHeader <|> parseSnippet <|> parseQuote <|> parseParagraph) <* 
         open <- LS.fromStrict <$> (P.try (P.string "```" *> P.noneOf1 "\r" <* P.string "\r\n"))
         res <-  parseLine
         return $ Snippet open res
-  
+
     parseHeader = do
         sharps <- P.try (P.many1 (P.char '#')) <* P.spaces
         rest <- LS.fromStrict <$> P.noneOf1 "\r\n"

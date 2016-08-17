@@ -10,35 +10,47 @@ module Core.Html.Meta
 import qualified Data.ByteString.Char8            as BS
 import qualified Language.Haskell.TH.Syntax       as TS
 import qualified Data.ByteString.UTF8             as UTF8
-import qualified Core.ByteString                  as ByteString
 import Core.Html.Node
 
 -- * Data types
 
 data MetaNode
-  = MStr !String
-  | MVal !String
-  | MMon !String
-  | MForeach !String ![String] ![MetaNode]
+  = MStr ![Token]
+  | MBts ![Token]
+  | MMon ![Token]
+  | MMap !String ![String] ![MetaNode]
   | MIf ![String] ![MetaNode]
+  deriving Show
 
 -- * Instances
 
 instance TS.Lift MetaNode where
-  lift (MStr a) = [| return $ UTF8.fromString a |]
-  lift (MVal a) = [| return $ ByteString.convert $(return $ TS.VarE $ TS.mkName a) |]
-  lift (MMon a) = [| $(return $ TS.VarE $ TS.mkName a) |]
-  lift (MForeach vals vs nodes) =
-    [| BS.concat <$> (sequence $ concatMap
-        (\($(return $ (TS.ListP $ map (TS.VarP . TS.mkName) vs)))
-            -> $(TS.lift nodes))
-         $(return $ TS.VarE $ TS.mkName vals))
+  lift (MStr es) =
+    [| return $ UTF8.fromString $(return $
+         (foldl TS.AppE (conv $ head es)) (map conv $ tail es))
      |]
+  lift (MBts es) =
+    [| return $(return $
+         (foldl TS.AppE (conv $ head es)) (map conv $ tail es))
+     |]
+  lift (MMon as) =
+    [| $(return $
+         (foldl TS.AppE (conv $ head as) (map conv $ tail as)))
+     |]
+  lift (MMap vs v nodes) =
+    [| BS.concat <$> (sequence $ concatMap
+        (\($(return $ mkP v)) -> $(TS.lift nodes))
+         $(return $ TS.VarE $ TS.mkName vs))
+     |]
+   where
+    mkP (p : []) = TS.VarP $ TS.mkName p
+    mkP (p : ps) = TS.ConP (TS.mkName p) $ map (TS.VarP . TS.mkName) ps
+    mkP [] = error "empty pattern"
   lift (MIf attrs nodes) =
     [| case $(return $
-              (foldl (\a b -> TS.AppE a b)
-              ((TS.VarE . TS.mkName . head) attrs)
-              (map (TS.VarE . TS.mkName) (tail attrs)))) of
+              (foldl TS.AppE
+                ((TS.VarE . TS.mkName . head) attrs)
+                (map (TS.VarE . TS.mkName) (tail attrs)))) of
            True -> BS.concat <$> sequence $(TS.lift nodes)
            _ -> return ""
      |]
@@ -46,10 +58,10 @@ instance TS.Lift MetaNode where
 -- * Optimizer
 
 optimize :: [MetaNode] -> [MetaNode]
-optimize (MStr a : MStr b : res) = optimize $ MStr (a ++ b) : res
-optimize (MStr a : res) = MStr a : optimize res
-optimize (MForeach vals vs nodes : res) =
-    (MForeach vals vs $ optimize nodes) : optimize res
+optimize (MStr [TStr a] : MStr [TStr b] : res) = optimize $ MStr [TStr (a ++ b)] : res
+optimize (MStr s@[TStr _] : res) = MStr s : optimize res
+optimize (MMap vs v nodes : res) =
+    (MMap vs v $ optimize nodes) : optimize res
 optimize (MIf attrs nodes : res) =
     (MIf attrs $ optimize nodes) : optimize res
 optimize (a : res) = a : optimize res
@@ -57,25 +69,27 @@ optimize [] = []
 
 -- * Converter
 
+conv :: Token -> TS.Exp
+-- ^ Convert a token to a TS expression
+conv (TStr s) = TS.LitE $ TS.StringL s
+conv (TRef s) = TS.VarE $ TS.mkName s
+
 convert :: Node -> [MetaNode]
 -- ^ Convert a node to a list of meta nodes
 convert (NTag name attrs nodes) = concat
-  [ [MStr $ "<" ++ name]
+  [ [MStr [TStr $ "<" ++ name]]
   , concatMap fromAttr attrs
-  , [MStr ">"]
+  , [MStr [TStr ">"]]
   , concatMap convert nodes
-  , [MStr $ "</" ++ name ++ ">"]
+  , [MStr [TStr $ "</" ++ name ++ ">"]]
   ]
-convert (NForeach vals vs ns) = [ MForeach vals vs $ concatMap convert ns ]
+convert (NMap vs v ns) = [ MMap vs v $ concatMap convert ns ]
 convert (NIf c ns) = [ MIf c $ concatMap convert ns ]
-convert (NText t) = [ fromToken t ]
+convert (NStr t) = [ MStr t ]
+convert (NBts t) = [ MBts t ]
+convert (NMon t) = [ MMon t ]
 
 fromAttr :: Attr -> [MetaNode]
 -- ^ Convert an attr to a list of meta nodes
-fromAttr (Attr s t) = [MStr $ " " ++ s ++ "=\"", fromToken t, MStr "\""]
-
-fromToken :: Token -> MetaNode
--- ^ Convert a token to a list of meta nodes
-fromToken (TStr s) = MStr s
-fromToken (TVal s) = MVal s
-fromToken (TMon s) = MMon s
+fromAttr (ABts s t) = [MStr [TStr $ " " ++ s ++ "=\""], MBts t, MStr [TStr "\""]]
+fromAttr (AStr s t) = [MStr [TStr $ " " ++ s ++ "=\""], MStr t, MStr [TStr "\""]]
