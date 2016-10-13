@@ -18,7 +18,7 @@ import Core.Database ()
 import GHC.Generics ((:*:)(..))
 import Database.MongoDB ((=:))
 
-data ModelInfo a = ModelInfo 
+data ModelInfo a = ModelInfo
   { table :: {-# UNPACK #-} !BS.ByteString
   , fields :: ![(BS.ByteString, T.TypeRep)]
   } deriving (Show)
@@ -42,7 +42,7 @@ instance (GModel a, GModel b) => GModel (a :*: b) where
             Json.JSObject m1 = gToJson a
             Json.JSObject m2 = gToJson b
     gToDocument ~(a :*: b) = gToDocument a ++ gToDocument b
-instance 
+instance
   ( GN.Selector c
   , T.Typeable t
   , Mongo.Val t
@@ -52,9 +52,9 @@ instance
     gFields s = [(BS.pack $ GN.selName s, T.typeOf (undefined :: t))]
     gToJson s = Json.JSObject $
         case gToJson $ GN.unM1 s of
-            Json.JSNil -> M.empty        
+            Json.JSNil -> M.empty
             val        -> M.fromList [(BS.pack $ GN.selName s, val)]
-    gToDocument s = 
+    gToDocument s =
         case Mongo.val (GN.unK1 $ GN.unM1 s) of
             Mongo.Null -> []
             val        -> [(BS.pack $ GN.selName s) =: val]
@@ -77,10 +77,10 @@ instance (GModel f) => GModel (GN.M1 GN.D c f) where
 
 class CollectionName f where
     collectionName :: f p -> String
-instance (GN.Datatype c) => CollectionName (GN.D1 c f) where 
+instance (GN.Datatype c) => CollectionName (GN.D1 c f) where
     collectionName = GN.datatypeName
 
-class 
+class
   ( GN.Generic a
   , CollectionName (GN.Rep a)
   , GModel (GN.Rep a)

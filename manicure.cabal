@@ -46,6 +46,7 @@ library
                    , Core.Markdown
                    , Core.Model
                    , Core.Launcher
+                   , Core.Crypto
   other-modules:     Core.Html.Meta
                    , Core.Html.Node
   build-depends:     base
