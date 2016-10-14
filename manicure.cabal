@@ -49,6 +49,7 @@ library
                    , Core.Launcher
                    , Core.Crypto
                    , Misc.Jpeg
+                   , Misc.Jpeg.Segment
   other-modules:     Core.Html.Meta
                    , Core.Html.Node
   build-depends:     base
