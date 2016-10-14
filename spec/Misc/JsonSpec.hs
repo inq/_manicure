@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Core.JsonSpec where
+module Misc.JsonSpec where
 
 import qualified Data.Map.Strict                as M
-import Core.Json
+import Misc.Json
 import SpecHelper
 
 spec :: Spec

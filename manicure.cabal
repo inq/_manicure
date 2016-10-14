@@ -24,7 +24,7 @@ test-suite spec
                    , utf8-string
                    , template-haskell
   other-modules:     Core.ByteStringSpec
-                   , Core.JsonSpec
+                   , Misc.JsonSpec
                    , Core.MarkdownSpec
                    , Core.ModelSpec
                    , Core.HtmlSpec
@@ -41,7 +41,7 @@ library
                    , Core.Database
                    , Core.Session
                    , Core.ByteString
-                   , Core.Json
+                   , Misc.Json
                    , Core.Parser
                    , Core.Markdown
                    , Core.Model
