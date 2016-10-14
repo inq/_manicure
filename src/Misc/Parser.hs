@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleContexts  #-}
-module Core.Parser where
+module Misc.Parser where
 
-import qualified Data.ByteString.Lazy             as LS
-import qualified Data.ByteString                  as BS
+import qualified Data.ByteString.Lazy as LS
+import qualified Data.ByteString as BS
 import qualified Data.Attoparsec.ByteString.Char8 as AC
 import qualified Data.Attoparsec.ByteString.Lazy  as AL
-import qualified GHC.Word                         as W
+import qualified GHC.Word as W
 import Control.Monad (MonadPlus)
 import Control.Applicative (Alternative)
 import Prelude hiding (takeWhile)

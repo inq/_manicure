@@ -1,10 +1,10 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Core.HtmlSpec where
+module Misc.HtmlSpec where
 
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.UTF8             as UTF8
-import Core.Html
+import Misc.Html
 import SpecHelper
 
 data Person = Person
@@ -22,7 +22,8 @@ spec =
           div { class= 'hello', id= "hihi" }
             | hi
          |]
-        res `shouldBe` UTF8.fromString "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
+        res `shouldBe` UTF8.fromString
+          "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
     context "UTF-8 Text" $ do
       it "parses simple utf-8" $ do
         res <- [parse|html
@@ -40,7 +41,8 @@ spec =
             ^ inner
             | outer
          |]
-        res `shouldBe` UTF8.fromString "<html><div><p>inner</p>outer</div></html>"
+        res `shouldBe` UTF8.fromString
+          "<html><div><p>inner</p>outer</div></html>"
       it "parses monad combinating function" $ do
         let inner v = [parse|p
            | inner
@@ -52,7 +54,8 @@ spec =
             ^ inner arg
             | outer
          |]
-        res `shouldBe` UTF8.fromString "<html><div><p>innercenter</p>outer</div></html>"
+        res `shouldBe` UTF8.fromString
+          "<html><div><p>innercenter</p>outer</div></html>"
     context "Simple Text" $ do
       it "parses simple tag" $ do
         res <- [parse|html
@@ -105,7 +108,8 @@ spec =
               span { class $ reverse bE }
                 $ cE
          |]
-        res `shouldBe` "<div><p>A<span class=\"bB\">C</span></p><p>D<span class=\"eE\">F</span></p></div>"
+        res `shouldBe`
+          "<div><p>A<span class=\"bB\">C</span></p><p>D<span class=\"eE\">F</span></p></div>"
     context "If statement" $ do
       it "parses true statement" $ do
         res <- [parse|html

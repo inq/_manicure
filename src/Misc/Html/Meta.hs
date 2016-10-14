@@ -1,16 +1,17 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Core.Html.Meta
+module Misc.Html.Meta
   ( MetaNode(..)
   , optimize
   , convert
   ) where
 
-import qualified Data.ByteString.Char8            as BS
-import qualified Language.Haskell.TH.Syntax       as TS
-import qualified Data.ByteString.UTF8             as UTF8
-import Core.Html.Node
+import qualified Data.ByteString.Char8 as BS
+import Language.Haskell.TH.Syntax
+  ( Lift, Lit(StringL), Exp(LitE, AppE, VarE), Pat(VarP, ConP), lift, mkName)
+import qualified Data.ByteString.UTF8 as UTF8
+import Misc.Html.Node
 
 -- * Data types
 
@@ -24,34 +25,34 @@ data MetaNode
 
 -- * Instances
 
-instance TS.Lift MetaNode where
+instance Lift MetaNode where
   lift (MStr es) =
     [| return $ UTF8.fromString $(return $
-         (foldl TS.AppE (conv $ head es)) (map conv $ tail es))
+         (foldl AppE (conv $ head es)) (map conv $ tail es))
      |]
   lift (MBts es) =
     [| return $(return $
-         (foldl TS.AppE (conv $ head es)) (map conv $ tail es))
+         (foldl AppE (conv $ head es)) (map conv $ tail es))
      |]
   lift (MMon as) =
     [| $(return $
-         (foldl TS.AppE (conv $ head as) (map conv $ tail as)))
+         (foldl AppE (conv $ head as) (map conv $ tail as)))
      |]
   lift (MMap vs v nodes) =
     [| BS.concat <$> (sequence $ concatMap
-        (\($(return $ mkP v)) -> $(TS.lift nodes))
-         $(return $ TS.VarE $ TS.mkName vs))
+        (\($(return $ mkP v)) -> $(lift nodes))
+         $(return $ VarE $ mkName vs))
      |]
    where
-    mkP (p : []) = TS.VarP $ TS.mkName p
-    mkP (p : ps) = TS.ConP (TS.mkName p) $ map (TS.VarP . TS.mkName) ps
+    mkP (p : []) = VarP $ mkName p
+    mkP (p : ps) = ConP (mkName p) $ map (VarP . mkName) ps
     mkP [] = error "empty pattern"
   lift (MIf attrs nodes) =
     [| case $(return $
-              (foldl TS.AppE
-                ((TS.VarE . TS.mkName . head) attrs)
-                (map (TS.VarE . TS.mkName) (tail attrs)))) of
-           True -> BS.concat <$> sequence $(TS.lift nodes)
+              (foldl AppE
+                ((VarE . mkName . head) attrs)
+                (map (VarE . mkName) (tail attrs)))) of
+           True -> BS.concat <$> sequence $(lift nodes)
            _ -> return ""
      |]
 
@@ -69,10 +70,10 @@ optimize [] = []
 
 -- * Converter
 
-conv :: Token -> TS.Exp
+conv :: Token -> Exp
 -- ^ Convert a token to a TS expression
-conv (TStr s) = TS.LitE $ TS.StringL s
-conv (TRef s) = TS.VarE $ TS.mkName s
+conv (TStr s) = LitE $ StringL s
+conv (TRef s) = VarE $ mkName s
 
 convert :: Node -> [MetaNode]
 -- ^ Convert a node to a list of meta nodes

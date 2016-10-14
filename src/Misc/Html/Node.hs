@@ -1,17 +1,17 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Core.Html.Node
+module Misc.Html.Node
   ( Node (..)
   , Attr (..)
   , Token (..)
   , parseLine
   ) where
 
-import qualified Data.ByteString.UTF8             as UTF8
-import qualified Core.Parser                      as P
+import qualified Data.ByteString.UTF8 as UTF8
+import qualified Misc.Parser as P
 import Control.Applicative ((<|>))
 
 -- * Data types
+
 data Token
   = TStr !String
   | TRef !String
@@ -36,11 +36,10 @@ data Attr
 parseStr :: P.Parser String
 -- ^ Parse a string
 parseStr = do
-    c <- P.spaces *> P.peekChar'
-    res <- case c of
-      '\n' -> fail "newline reached"
-      _ -> UTF8.toString <$> (P.noneOf1 "\n ")
-    return res
+  c <- P.spaces *> P.peekChar'
+  case c of
+    '\n' -> fail "newline reached"
+    _ -> UTF8.toString <$> P.noneOf1 "\n "
 
 parseToken :: P.Parser Token
 -- ^ Parse the token.
@@ -58,41 +57,39 @@ parseToken = do
 
 parseTag :: P.Parser Node
 -- ^ Parse the tag.
-parseTag = NTag
-    <$> UTF8.toString <$> (P.noneOf " \n")
+parseTag = (NTag . UTF8.toString <$> P.noneOf " \n")
     <*> (P.try parseArgs <|> return [])
     <*> return []
   where
-    parseArgs = P.token '{' *> (P.sepBy1 parseArg $ P.char ',') <* P.char '}'
+    parseArgs = P.token '{' *> P.sepBy1 parseArg (P.char ',') <* P.char '}'
     parseArg = do
-        key <- UTF8.toString <$> (P.spaces *> P.noneOf " =$")
-        c <- P.spaces *> P.peekChar'
-        case c of
-            '=' -> P.anyChar *> (ABts key <$> P.many1 parseToken)
-            '$' -> P.anyChar *> (AStr key <$> P.many1 parseToken)
-            _ -> error ("invalid separator" ++ key ++ [c])
+      key <- UTF8.toString <$> (P.spaces *> P.noneOf " =$")
+      c <- P.spaces *> P.peekChar'
+      case c of
+        '=' -> P.anyChar *> (ABts key <$> P.many1 parseToken)
+        '$' -> P.anyChar *> (AStr key <$> P.many1 parseToken)
+        _ -> error ("invalid separator" ++ key ++ [c])
 
 parseCommand :: P.Parser Node
 -- ^ Parse commands: render, if, map.
 parseCommand = do
     c <- P.anyChar *> P.skipSpace *> P.peekChar'
     case c of
-        'i' -> ifNode
-        'm' -> mapNode
-        c' -> error $ "unexpected char(" ++ [c'] ++ ")"
+      'i' -> ifNode
+      'm' -> mapNode
+      c' -> error $ "unexpected char(" ++ [c'] ++ ")"
   where
-    ifNode = P.string "if" *> P.skipSpace *> (
-        NIf
-        <$> (map UTF8.toString <$> (P.sepBy (P.spaces *> P.noneOf " \n") $ P.char ' '))
-        <*> return []
+    ifNode = P.string "if" *> P.skipSpace *>
+      ( (NIf . map UTF8.toString)
+      <$> P.sepBy (P.spaces *> P.noneOf " \n") (P.char ' ')
+      <*> return []
       )
-    mapNode = P.string "map" *> P.skipSpace *> (
-        NMap
-        <$> UTF8.toString <$> P.noneOf " "
-        <*> (P.spaces *> P.string "->" *>
-             P.many1 parseStr
-             <* P.spaces)
-        <*> return []
+    mapNode = P.string "map" *> P.skipSpace *>
+      ( (NMap . UTF8.toString <$> P.noneOf " ")
+      <*> (P.spaces *> P.string "->" *>
+           P.many1 parseStr
+           <* P.spaces)
+      <*> return []
       )
 
 parseLine :: P.Parser (Int, Node)
@@ -115,10 +112,10 @@ parseLine = do
         (P.char '\t' >> fail "tab charactor is not allowed")
       )
     strNode = P.anyChar *> P.skipSpace *>
-        (NStr <$> P.many1 parseToken)
+      (NStr <$> P.many1 parseToken)
     btsNode = P.anyChar *> P.skipSpace *>
-        (NBts <$> P.many1 parseToken)
+      (NBts <$> P.many1 parseToken)
     monadNode = P.anyChar *> P.skipSpace *>
-        (NMon <$> P.many1 parseToken)
+      (NMon <$> P.many1 parseToken)
     textNode = P.anyChar *> P.skipSpace *>
-        (NStr . (:[]) . TStr . UTF8.toString <$> P.noneOf "\n")
+      (NStr . (:[]) . TStr . UTF8.toString <$> P.noneOf "\n")

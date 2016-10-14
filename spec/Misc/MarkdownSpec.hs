@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Core.MarkdownSpec where
+module Misc.MarkdownSpec where
 
-import Core.Markdown
+import Misc.Markdown
 import SpecHelper
 
 spec :: Spec

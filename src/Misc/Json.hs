@@ -6,10 +6,12 @@ import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Map.Strict as M
 import qualified Data.Time.Clock as TC
-import qualified Core.Parser as P
+import qualified Misc.Parser as P
 import Database.MongoDB (ObjectId)
 import Data.Char (chr, isDigit)
 import Control.Applicative ((<|>))
+
+-- * Data types
 
 data Json
   = JSString {-# UNPACK #-} !BS.ByteString
@@ -20,6 +22,8 @@ data Json
   | JSObjectId {-# UNPACK #-} !BS.ByteString
   | JSNil
   deriving (Eq, Show)
+
+-- * Instances
 
 class ToJson a where
 -- ^ JSON transformation
@@ -37,6 +41,8 @@ instance ToJson [Char] where
 instance ToJson t => ToJson (Maybe t) where
     toJson (Just a) = toJson a
     toJson Nothing  = JSNil
+
+-- * Parsers
 
 parse :: BS.ByteString -> Json
 -- ^ Parse the given bytestring

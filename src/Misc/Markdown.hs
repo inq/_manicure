@@ -1,11 +1,13 @@
-{-# LANGUAGE OverloadedStrings    #-}
-module Core.Markdown where
+{-# LANGUAGE OverloadedStrings #-}
+module Misc.Markdown where
 
-import qualified Data.ByteString.Char8            as BS
-import qualified Data.ByteString.Lazy             as LS
-import qualified Core.Parser                      as P
-import Data.Attoparsec.ByteString.Lazy( Result( Done ) )
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy as LS
+import qualified Misc.Parser as P
+import Data.Attoparsec.ByteString.Lazy (Result(Done))
 import Control.Applicative ((<|>))
+
+-- * Data types
 
 data Markdown
   = Markdown [Item]
@@ -21,6 +23,8 @@ data Item
   | Paragraph  !LS.ByteString
   | Snippet !LS.ByteString ![LS.ByteString]
   deriving (Eq, Show)
+
+-- * Parsers
 
 parse :: LS.ByteString -> Maybe Markdown
 -- ^ Parse the given bytestring
