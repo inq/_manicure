@@ -1,39 +1,38 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE EmptyCase         #-}
-{-# LANGUAGE FlexibleContexts  #-}
-module Core.Html
+{-# LANGUAGE EmptyCase, FlexibleContexts  #-}
+module Misc.Html
   ( parse
   ) where
 
-import qualified Data.ByteString.Char8            as BS
-import qualified Language.Haskell.TH.Quote        as TQ
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.UTF8             as UTF8
-import qualified Core.Parser                      as P
-import Core.Html.Node (Node(..), parseLine)
-import Core.Html.Meta (MetaNode(..), optimize, convert)
+import Language.Haskell.TH.Quote (QuasiQuoter(..))
+import Misc.Html.Node (Node(..), parseLine)
+import Misc.Html.Meta (MetaNode(..), optimize, convert)
+import Misc.Parser (Parser, many, parseOnly)
 
 -- * TH
 
-parseNode :: P.Parser [MetaNode]
+parseNode :: Parser [MetaNode]
 -- ^ The main parser
 parseNode = do
-    (_, res, _) <- buildTree <$> P.many parseLine
+    (_, res, _) <- buildTree <$> many parseLine
     return $ optimize $ concatMap convert res
 
-parse :: TQ.QuasiQuoter
+parse :: QuasiQuoter
 -- ^ Parser for QuasiQUoter
-parse = TQ.QuasiQuoter {
-        TQ.quoteExp = quoteExp,
-        TQ.quotePat = undefined,
-        TQ.quoteType = undefined,
-        TQ.quoteDec = undefined
-    }
-  where
-    quoteExp str = do
-        case P.parseOnly parseNode (UTF8.fromString str) of
-            Right tag -> [| BS.concat <$> sequence tag |]
-            Left _    -> undefined
+parse = QuasiQuoter
+  { quoteExp = quoteExp
+  , quotePat = undefined
+  , quoteType = undefined
+  , quoteDec = undefined
+  }
+ where
+  quoteExp str =
+    case parseOnly parseNode (UTF8.fromString str) of
+      Right tag -> [| BS.concat <$> sequence tag |]
+      Left _    -> undefined
 
 -- * Node
 

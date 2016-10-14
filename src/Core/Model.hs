@@ -1,9 +1,6 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables, ExplicitNamespaces #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances, OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 module Core.Model where
 
@@ -11,7 +8,7 @@ import qualified Data.ByteString.Char8            as BS
 import qualified GHC.Generics                     as GN
 import qualified Data.Char                        as C
 import qualified Data.Typeable                    as T
-import qualified Core.Json                        as Json
+import qualified Misc.Json                        as Json
 import qualified Data.Map.Strict                  as M
 import qualified Database.MongoDB                 as Mongo
 import Core.Database ()

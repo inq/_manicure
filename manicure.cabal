@@ -23,11 +23,11 @@ test-suite spec
                    , attoparsec
                    , utf8-string
                    , template-haskell
-  other-modules:     Core.ByteStringSpec
-                   , Core.JsonSpec
-                   , Core.MarkdownSpec
+  other-modules:     Misc.ByteStringSpec
+                   , Misc.JsonSpec
+                   , Misc.MarkdownSpec
+                   , Misc.HtmlSpec
                    , Core.ModelSpec
-                   , Core.HtmlSpec
                    , SpecHelper
   default-language:  Haskell2010
 library
@@ -37,18 +37,18 @@ library
                    , Core.Component
                    , Core.Route
                    , Core.Http
-                   , Core.Html
                    , Core.Database
                    , Core.Session
-                   , Core.ByteString
-                   , Core.Json
-                   , Core.Parser
-                   , Core.Markdown
                    , Core.Model
                    , Core.Launcher
-                   , Core.Crypto
-  other-modules:     Core.Html.Meta
-                   , Core.Html.Node
+                   , Misc.ByteString
+                   , Misc.Html
+                   , Misc.Crypto
+                   , Misc.Json
+                   , Misc.Parser
+                   , Misc.Markdown
+  other-modules:     Misc.Html.Meta
+                   , Misc.Html.Node
   build-depends:     base
                    , network
                    , directory

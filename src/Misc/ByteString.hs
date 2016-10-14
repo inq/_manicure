@@ -1,12 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Core.ByteString where
+module Misc.ByteString where
 
-import qualified Data.ByteString.Char8            as BS
-import qualified Data.ByteString.Lazy.Char8       as L
-import qualified Data.Map                         as M
-import qualified Core.Parser                      as P
-import qualified Network.HTTP.Types.URI           as URI
-import qualified Data.ByteString.UTF8             as UTF8
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as LS
+import qualified Data.Map as M
+import qualified Misc.Parser as P
+import qualified Data.ByteString.UTF8 as UTF8
+import Network.HTTP.Types.URI (urlDecode)
+
+-- * Instances
 
 class StringFamily a where
     convert :: a -> BS.ByteString
@@ -14,8 +16,8 @@ instance StringFamily BS.ByteString where
     convert = id
 instance StringFamily String where
     convert = UTF8.fromString
-instance StringFamily L.ByteString where
-    convert = L.toStrict
+instance StringFamily LS.ByteString where
+    convert = LS.toStrict
 
 type QueryString = M.Map BS.ByteString BS.ByteString
 
@@ -28,7 +30,7 @@ parse splitter = P.sepBy parsePair (P.char splitter)
         key <- decode <$> (spaces *> P.noneOf1 " =" <* spaces <* P.char '=')
         value <- decode <$> (spaces *> P.noneOf1 (splitter : " ") <* spaces)
         return (key, value)
-    decode = URI.urlDecode True
+    decode = urlDecode True
 
 splitAndDecode :: Char -> BS.ByteString -> QueryString
 -- ^ Split the given string and construct the Map
