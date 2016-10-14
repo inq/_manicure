@@ -33,6 +33,7 @@ test-suite spec
 library
   ghc-options:       -fllvm -auto-all
   exposed-modules:   Core.Request
+                   , Core.Request.Content
                    , Core.Response
                    , Core.Component
                    , Core.Route

@@ -4,11 +4,12 @@ module Core.Request where
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LS
-import qualified Core.Http as Http
 import qualified Data.Char as C
 import qualified Data.Map as M
 import qualified Data.Attoparsec.ByteString.Lazy  as AL
+import qualified Core.Http as Http
 import qualified Misc.Parser as P
+import Core.Request.Content (Content, mkContent)
 import Network.Socket (Socket)
 import Language.Haskell.TH.Syntax (Lift, lift)
 import Misc.ByteString (QueryString, splitAndDecode)
@@ -23,7 +24,7 @@ data Request = Request
   , version :: Http.Version
   , uri :: BS.ByteString
   , headers :: RequestHeaders
-  , post :: QueryString
+  , content :: Content
   , queryStr :: QueryString
   , requestSocket :: Socket
   } deriving (Show)
@@ -79,10 +80,9 @@ extractCookie req =
 
 parse :: LS.ByteString -> Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
-parse ipt = parseHead _head res post'
+parse ipt = parseHead _head res content
   where
-    post' = splitAndDecode '&' $ LS.toStrict content
-    content = LS.take contentLength pdata
+    content = mkContent (M.lookup "Content-Type" $ M.fromList res) $ LS.take contentLength pdata
     contentLength = case M.lookup "Content-Length" $ M.fromList res of
       Just len -> case BS.readInteger len of
         Just num -> fromIntegral $ fst num
@@ -106,10 +106,10 @@ splitLines str =
     Just _         -> [BS.drop 2 str]
     Nothing        -> [""]
 
-parseHead :: BS.ByteString -> RequestHeaders -> QueryString -> Socket -> Request
+parseHead :: BS.ByteString -> RequestHeaders -> Content -> Socket -> Request
 -- ^ Parse the first line of the HTTP header
-parseHead str _headers query =
-    Request _method _version _uri _headers query queryString
+parseHead str _headers content =
+    Request _method _version _uri _headers content queryString
   where
     _method = case BS.index str 0 of
       'G' -> GET
