@@ -53,6 +53,7 @@ library
   other-modules:     Core.Html.Meta
                    , Core.Html.Node
   build-depends:     base
+                   , binary
                    , network
                    , directory
                    , bytestring

@@ -5,14 +5,15 @@ module Misc.Jpeg.Segment
 
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lazy.Char8 as CS
-import Data.Char( ord )
+import qualified Data.Binary.Get as Bin
+import Data.ByteString.Char8 (unpack)
+import Control.Monad (when)
 
 
 data Segment
   = Soi     -- Start of Image
   | App0    -- App0
-    { idf :: String
-    , rev :: (Int, Int)
+    { rev :: (Int, Int)
     , unit :: Int
     , density :: (Int, Int)
     , thumbSize :: (Int, Int)
@@ -25,43 +26,32 @@ data Segment
   | Eoi     -- End of Image
   deriving Show
 
+parseApp0 :: Bin.Get Segment
+parseApp0 = do
+  size <- Bin.getWord16be
+  when (size < 16) $ fail "size must be larger than 15"
+  str <- Bin.getByteString 5
+  when (unpack str /= "JFIF\NUL") $ fail "invalid marker"
+  return Eoi
+
+parseSeg :: Bin.Get Segment
+parseSeg = do
+  idf <- Bin.getWord8
+  when (idf /= 0xff) $ fail "Mark must be 0xff"
+  marker <- Bin.getWord8
+  case marker of
+    0xd8 -> return Soi
+    0xdb -> return Dqt
+    0xc0 -> return Sof
+    0xc4 -> return Dht
+    0xda -> return Sos
+    0xd9 -> return Eoi
+    0xe0 -> parseApp0
+    _ -> fail $ show marker
+
 
 parse :: BS.ByteString -> Maybe [Segment]
-parse blob = do
-    (mk, skip) <- marker m
-    case skip of
-      0 -> Just []
-      _ -> (mk :) <$> parse (BS.drop skip blob)
-  where
-    chr i = fromIntegral $ BS.index blob i
-    m = BS.index blob 1
-    sh = chr 2
-    sl = chr 3
-    marker c = case c of
-      0xd8 -> Just (Soi, 2)
-      0xdb -> Just (Dqt, 0)
-      0xc0 -> Just (Sof, 0)
-      0xc4 -> Just (Dht, 0)
-      0xda -> Just (Sos, 0)
-      0xd9 -> Just (Eoi, 0)
-      0xe0 -> readApp0
-      _ ->
-        if c >= 0xe1 && c <= 0xef
-          then Just (App (fromIntegral c - 0xe0), 2)
-          else Just (Eoi, 0)
-    readApp0 = Just (App0
-      { idf = CS.unpack $ BS.drop 4 $ BS.take 9 blob
-      , rev =
-        ( chr 9
-        , chr 10
-        )
-      , unit = chr 11
-      , density =
-        ( chr 12 * 25 + chr 13
-        , chr 14 * 25 + chr 15
-        )
-      , thumbSize =
-        ( chr 16
-        , chr 17
-        )
-      }, 2)
+parse blob =
+    case Bin.runGetOrFail parseSeg blob of
+      Left (_, _, c) -> Just []
+      Right (rem, o, res) -> (res :) <$> parse rem
