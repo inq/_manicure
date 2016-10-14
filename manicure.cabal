@@ -28,6 +28,7 @@ test-suite spec
                    , Core.MarkdownSpec
                    , Core.ModelSpec
                    , Core.HtmlSpec
+                   , Misc.JpegSpec
                    , SpecHelper
   default-language:  Haskell2010
 library
@@ -47,6 +48,7 @@ library
                    , Core.Model
                    , Core.Launcher
                    , Core.Crypto
+                   , Misc.Jpeg
   other-modules:     Core.Html.Meta
                    , Core.Html.Node
   build-depends:     base

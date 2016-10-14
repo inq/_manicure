@@ -1,5 +1,4 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 module Core.HtmlSpec where
 
 import qualified Data.ByteString.Char8            as BS
