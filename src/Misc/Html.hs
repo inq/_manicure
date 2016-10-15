@@ -6,7 +6,7 @@ module Misc.Html
   ) where
 
 import qualified Data.ByteString.Char8 as BS
-import qualified Data.ByteString.UTF8             as UTF8
+import qualified Data.ByteString.UTF8 as UTF8
 import Language.Haskell.TH.Quote (QuasiQuoter(..))
 import Misc.Html.Node (Node(..), parseLine)
 import Misc.Html.Meta (MetaNode(..), optimize, convert)
@@ -23,13 +23,13 @@ parseNode = do
 parse :: QuasiQuoter
 -- ^ Parser for QuasiQUoter
 parse = QuasiQuoter
-  { quoteExp = quoteExp
+  { quoteExp = qExp
   , quotePat = undefined
   , quoteType = undefined
   , quoteDec = undefined
   }
  where
-  quoteExp str =
+  qExp str =
     case parseOnly parseNode (UTF8.fromString str) of
       Right tag -> [| BS.concat <$> sequence tag |]
       Left _    -> undefined
