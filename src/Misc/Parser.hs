@@ -2,9 +2,9 @@
 module Misc.Parser where
 
 import qualified Data.ByteString.Lazy as LS
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.Attoparsec.ByteString.Char8 as AC
-import qualified Data.Attoparsec.ByteString.Lazy  as AL
+import qualified Data.Attoparsec.ByteString.Lazy as AL
 import qualified GHC.Word as W
 import Control.Monad (MonadPlus)
 import Control.Applicative (Alternative)
@@ -12,6 +12,17 @@ import Prelude hiding (takeWhile)
 
 type Parser = AC.Parser
 
+quoted :: Parser BS.ByteString
+quoted =
+  char '"' *> (BS.concat <$> cont) <* char '"'
+ where
+  cont = do
+    c <- peekChar'
+    case c of
+      '"' -> return []
+      '\\' -> (:) <$> escaped <*> cont
+      _ -> (:) <$> noneOf1 "\\\"" <*> cont
+  escaped = BS.singleton <$> (char '\\' *> anyChar)
 peekChar' :: Parser Char
 peekChar' = AC.peekChar'
 

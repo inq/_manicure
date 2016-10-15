@@ -28,6 +28,7 @@ test-suite spec
                    , Misc.MarkdownSpec
                    , Misc.HtmlSpec
                    , Core.ModelSpec
+                   , Core.Request.ContentSpec
                    , SpecHelper
   default-language:  Haskell2010
 library

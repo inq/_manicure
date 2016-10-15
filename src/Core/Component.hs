@@ -10,7 +10,6 @@ import qualified Database.Redis as R
 import qualified Data.Map as M
 import qualified Core.Request.Content as Content
 import Control.Monad.State (StateT, runStateT, get, liftIO)
-import Data.Maybe (fromJust)
 import Data.List (find)
 
 -- * Data types
@@ -52,13 +51,17 @@ getParams :: StateT ResState IO [BS.ByteString]
 -- ^ Get parameters
 getParams = params <$> get
 
-postData :: BS.ByteString -> StateT ResState IO (Maybe BS.ByteString)
+postData :: BS.ByteString -> StateT ResState IO (Maybe Content.Context)
 -- ^ Read Post variable
 postData key = Content.lookup key . Req.content . req <$> get
 
 postData' :: BS.ByteString -> StateT ResState IO BS.ByteString
 -- ^ Read Post variable
-postData' key = fromJust . Content.lookup key . Req.content . req <$> get
+postData' key = do
+  res <- Content.lookup key . Req.content . req <$> get
+  return $ case res of
+    Just (Content.MkText bs) -> bs
+    _ -> ""
 
 requestHeader :: BS.ByteString -> StateT ResState IO (Maybe BS.ByteString)
 -- ^ Read request header
@@ -72,4 +75,10 @@ reqm :: StateT ResState IO BS.ByteString
 -- ^ Read request header
 reqm = do
     headers <- Req.headers . req <$> get
+    return $ BS.pack $ show headers
+
+reqn :: StateT ResState IO BS.ByteString
+-- ^ Read request header
+reqn = do
+    headers <- Req.content . req <$> get
     return $ BS.pack $ show headers
