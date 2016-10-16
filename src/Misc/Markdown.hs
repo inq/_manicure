@@ -19,6 +19,7 @@ data Item
   | H3  !LS.ByteString
   | H2  !LS.ByteString
   | H1  !LS.ByteString
+  | Img !LS.ByteString !LS.ByteString
   | Quote  !LS.ByteString
   | Paragraph  !LS.ByteString
   | Snippet !LS.ByteString ![LS.ByteString]
@@ -34,7 +35,7 @@ parse str = case P.parse parseMarkdown str of
 
 parseItem :: P.Parser Item
 -- ^ The subparser
-parseItem = (parseHeader <|> parseSnippet <|> parseQuote <|> parseParagraph)
+parseItem = (parseHeader <|> parseSnippet <|> parseQuote <|> parseImage <|> parseParagraph)
       <* P.many1 (P.string "\r\n")
   where
     parseEnd = do
@@ -46,10 +47,14 @@ parseItem = (parseHeader <|> parseSnippet <|> parseQuote <|> parseParagraph)
          parseLine)
     parseSnippet = do
         open <- LS.fromStrict <$>
-            (P.try (P.string "```" *> P.noneOf1 "\r" <* P.string "\r\n"))
+            P.try (P.string "```" *> P.noneOf1 "\r" <* P.string "\r\n")
         res <-  parseLine
         return $ Snippet open res
-
+    parseImage = do
+        alt <- LS.fromStrict <$>
+            P.try (P.char '!' *> P.spaces *> P.noneOf1 ";" <* P.char ';' <* P.spaces)
+        uri <- LS.fromStrict <$> P.noneOf1 "\r" <* P.string "\r\n"
+        return $ Img alt uri
     parseHeader = do
         sharps <- P.try (P.many1 (P.char '#')) <* P.spaces
         rest <- LS.fromStrict <$> P.noneOf1 "\r\n"
@@ -85,6 +90,12 @@ toStr (H4 str) = LS.concat ["<h4>", str, "</h4>"]
 toStr (H3 str) = LS.concat ["<h3>", str, "</h3>"]
 toStr (H2 str) = LS.concat ["<h2>", str, "</h2>"]
 toStr (H1 str) = LS.concat ["<h1>", str, "</h1>"]
+toStr (Img alt uri) = LS.concat
+        [ "<img class='content-img' alt='"
+        , alt
+        , "' src='"
+        , uri
+        , "'>"]
 toStr (Quote str) = LS.concat ["<blockquote><p>", str, "</p></blockquote>"]
 toStr (Paragraph str) = LS.concat ["<p>", str, "</p>"]
 toStr (Snippet _ strs) = LS.concat
