@@ -1,9 +1,9 @@
-resolver: nightly-2016-07-07
+resolver: lts-7.3
 packages:
 - '.'
 - location: 
     git: 'https://github.com/inq/bson.git'
-    commit: '0063a3481684556195a24c7c8d6d34b49d3af85c'
+    commit: 'aef11b81bc658b894fddb5a6812a4dd204d275de'
   extra-dep: true
 - location:
     git: 'https://github.com/inq/mongodb.git'

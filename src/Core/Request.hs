@@ -80,9 +80,9 @@ extractCookie req =
 
 parse :: LS.ByteString -> Socket -> Request
 -- ^ Read and parse the data from socket to make the Request data
-parse ipt = parseHead _head res content
+parse ipt = parseHead _head res content'
   where
-    content = mkContent (M.lookup "Content-Type" $ M.fromList res) $ LS.take contentLength pdata
+    content' = mkContent (M.lookup "Content-Type" $ M.fromList res) $ LS.take contentLength pdata
     contentLength = case M.lookup "Content-Length" $ M.fromList res of
       Just len -> case BS.readInteger len of
         Just num -> fromIntegral $ fst num
@@ -108,8 +108,8 @@ splitLines str =
 
 parseHead :: BS.ByteString -> RequestHeaders -> Content -> Socket -> Request
 -- ^ Parse the first line of the HTTP header
-parseHead str _headers content =
-    Request _method _version _uri _headers content queryString
+parseHead str _headers content' =
+    Request _method _version _uri _headers content' queryString
   where
     _method = case BS.index str 0 of
       'G' -> GET

@@ -24,6 +24,7 @@ data ResState = ResState
 
 type Handler = StateT ResState IO Res.Response
 type Component = StateT ResState IO BS.ByteString
+type FlexComp a = StateT ResState IO a
 
 -- * Handler
 
