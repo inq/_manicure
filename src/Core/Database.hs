@@ -2,18 +2,22 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Core.Database
-    ( module Core.Database
-    , (=:)
-    ) where
+  ( module Core.Database
+  , (=:)
+  ) where
 
-import qualified Database.MongoDB                 as M
-import qualified Database.Redis                   as R
-import qualified Data.ByteString.Char8            as BS
+import qualified Database.MongoDB as M
+import qualified Database.Redis as R
+import qualified Data.ByteString.Char8 as BS
 import Database.MongoDB ((=:))
 import Control.Monad.Trans (MonadIO)
 import Control.Monad.Trans.Control (MonadBaseControl)
 
-data Connection = Connection {-# UNPACK #-} !R.Connection {-# UNPACK #-} !M.Pipe {-# UNPACK #-} !M.Database
+data Connection
+  = Connection {-# UNPACK #-}
+    !R.Connection {-# UNPACK #-}
+    !M.Pipe {-# UNPACK #-}
+    !M.Database
 
 connect :: BS.ByteString -> IO Connection
 -- ^ Open the new DB connection

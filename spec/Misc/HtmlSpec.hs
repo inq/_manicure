@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Misc.HtmlSpec where
 
@@ -16,7 +16,7 @@ data Person = Person
 spec :: Spec
 spec =
   describe "Core.HtmlSpec" $ do
-    context "Token parser" $ do
+    context "Token parser" $
       it "parses simple string" $ do
         res <- [parse|html
           div { class= 'hello', id= "hihi" }
@@ -24,7 +24,7 @@ spec =
          |]
         res `shouldBe` UTF8.fromString
           "<html><div class=\"hello\" id=\"hihi\">hi</div></html>"
-    context "UTF-8 Text" $ do
+    context "UTF-8 Text" $
       it "parses simple utf-8" $ do
         res <- [parse|html
           div

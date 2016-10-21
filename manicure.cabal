@@ -50,6 +50,9 @@ library
                    , Misc.Json
                    , Misc.Parser
                    , Misc.Markdown
+                   , Misc.Highlighter
+                   , Misc.Highlighter.Ruby
+                   , Misc.Highlighter.Snippet
   other-modules:     Misc.Html.Meta
                    , Misc.Html.Node
   build-depends:     base
